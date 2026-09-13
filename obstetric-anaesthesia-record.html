@@ -125,6 +125,7 @@
 <div class="toolbar">
   <h1>Obstetric Anaesthetic Record — editable, printable template</h1>
   <button onclick="window.print()">Print</button>
+  <button onclick="applySimpleCase()" title="Fills in the common defaults for a straightforward primary/elective spinal C/S">Simple Case</button>
   <button class="secondary" onclick="resetForm()">Reset for next patient</button>
   <p>Nothing here is saved or sent anywhere — it lives only in this open tab. Reset before reusing for another patient. Prefilled defaults on selecting a technique are common-practice starting points, not instructions — verify and edit for the actual case.</p>
 </div>
@@ -166,7 +167,7 @@
           <option>FCOG</option>
         </select>
       </div>
-      <div class="field"><label>Consent obtained:</label><span class="chk"><input type="checkbox"></span></div>
+      <div class="field"><label>Consent obtained:</label><span class="chk"><input type="checkbox" id="consent-obtained"></span></div>
       <div class="field"><label>Nil by mouth since (time):</label><input type="time"></div>
     </div>
     <div>
@@ -186,17 +187,24 @@
   <div class="box">
     <div class="box-title" style="margin-bottom:3px;">History:</div>
     <div class="comp-list no-print" id="history-checks">
+      <span style="font-size:10px;color:var(--muted);margin-right:2px;">Hx:</span>
       <span class="chk"><input type="checkbox" data-tag="NBB"> NBB</span>
       <span class="chk"><input type="checkbox" data-tag="RVD"> RVD</span>
       <span class="chk"><input type="checkbox" data-tag="HPT"> HPT</span>
       <span class="chk"><input type="checkbox" data-tag="T2DM"> T2DM</span>
-      <span class="chk"><input type="checkbox" data-tag="Prev C/S x1"> Prev C/S x1</span>
-      <span class="chk"><input type="checkbox" data-tag="Prev C/S x2"> Prev C/S x2</span>
-      <span class="chk"><input type="checkbox" data-tag="Prev C/S x3"> Prev C/S x3</span>
+      <span class="chk"><input type="checkbox" data-tag="Prev C/S"> Prev C/S</span>
       <span class="chk"><input type="checkbox" data-tag="EOPET"> EOPET</span>
       <span class="chk"><input type="checkbox" data-tag="LOPET"> LOPET</span>
       <span class="chk"><input type="checkbox" data-tag="↑BMI"> ↑BMI</span>
       <span class="chk"><input type="checkbox" data-tag="Anaemia"> Anaemia</span>
+    </div>
+    <div class="comp-list no-print" id="now-checks" style="margin-top:2px;">
+      <span style="font-size:10px;color:var(--muted);margin-right:2px;">Now:</span>
+      <span class="chk"><input type="checkbox" data-tag="Elective Repeat/DVBAC"> Elective Repeat/DVBAC</span>
+      <span class="chk"><input type="checkbox" data-tag="NRCTG"> NRCTG</span>
+      <span class="chk"><input type="checkbox" data-tag="Path CTG"> Path CTG</span>
+      <span class="chk"><input type="checkbox" data-tag="FTP"> FTP</span>
+      <span class="chk"><input type="checkbox" data-tag="APH"> APH</span>
     </div>
     <textarea id="history-text" rows="3" class="xl"></textarea>
   </div>
@@ -211,7 +219,7 @@
   </div>
   <div class="box">
     <div class="box-title">Medication:</div><textarea rows="1" class="xl"></textarea>
-    <div class="field" style="margin-top:4px;"><label class="box-title">Allergies:</label><input type="text" class="lg"></div>
+    <div class="field" style="margin-top:4px;"><label class="box-title">Allergies:</label><input type="text" id="allergies-field" class="lg"> <span class="chk"><input type="checkbox" id="allergy-nil" onchange="toggleAllergyNil(this)"> Nil</span></div>
   </div>
 
   <div class="box">
@@ -232,7 +240,7 @@
     <div class="row" style="justify-content:space-between;">
       <div class="box-title">Airway examination</div>
       <div class="field"><label>Mallampati score:</label>
-        <span class="chk"><input type="radio" name="mallampati">1</span>
+        <span class="chk"><input type="radio" name="mallampati" id="mallampati-1">1</span>
         <span class="chk"><input type="radio" name="mallampati">2</span>
         <span class="chk"><input type="radio" name="mallampati">3</span>
         <span class="chk"><input type="radio" name="mallampati">4</span>
@@ -241,21 +249,21 @@
     <div class="row">
       <div class="field"><label>Loose/awkward teeth:</label>
         <span class="chk"><input type="radio" name="teeth">Yes</span>
-        <span class="chk"><input type="radio" name="teeth">No</span>
+        <span class="chk"><input type="radio" name="teeth" id="teeth-no">No</span>
       </div>
-      <span class="chk"><input type="checkbox">3:3:2</span>
+      <span class="chk"><input type="checkbox" id="airway-332">3:3:2</span>
       <span class="chk"><input type="checkbox">BMI ≥ 30</span>
       <div class="field"><label>Neck:</label>
-        <span class="chk"><input type="checkbox">FROM</span>
-        <span class="chk"><input type="checkbox">FON Access Assessed</span>
+        <span class="chk"><input type="checkbox" id="airway-from">FROM</span>
+        <span class="chk"><input type="checkbox" id="airway-fon">FON Access Assessed</span>
       </div>
     </div>
     <div class="field"><label>Additional:</label><input type="text" class="xlg"></div>
     <div class="field"><label>ASA rating:</label>
-      <span class="chk"><input type="radio" name="asa">2</span>
-      <span class="chk"><input type="radio" name="asa">3</span>
-      <span class="chk"><input type="radio" name="asa">4</span>
-      <span class="chk"><input type="radio" name="asa">5</span>
+      <span class="chk"><input type="radio" name="asa" id="asa-2">2</span>
+      <span class="chk"><input type="radio" name="asa" id="asa-3">3</span>
+      <span class="chk"><input type="radio" name="asa" id="asa-4">4</span>
+      <span class="chk"><input type="radio" name="asa" id="asa-5">5</span>
       <span class="chk"><input type="checkbox" id="asa-e">E</span>
     </div>
   </div>
@@ -274,7 +282,7 @@
   <div class="box two-col">
     <div>
       <div class="box-title">Premedication:</div>
-      <span class="chk"><input type="checkbox">0.3M Sodium Citrate 30 mL per os</span>
+      <span class="chk"><input type="checkbox" id="premed-citrate">0.3M Sodium Citrate 30 mL per os</span>
       <div class="field"><label>Time:</label><input type="time"></div>
     </div>
     <div>
@@ -329,7 +337,7 @@
         </div>
       </div>
       <div class="row">
-        <div class="field"><label>Sensory height (to cold) pre-incision:</label><input type="text" class="md"></div>
+        <div class="field"><label>Sensory height (to cold) pre-incision:</label><input type="text" id="r-sensory-height" class="md"></div>
       </div>
     </div>
 
@@ -375,7 +383,7 @@
   <div class="box" style="min-height:26mm;">
     <div class="box-title">Remarks and complications</div>
     <div class="comp-list" id="comp-list">
-      <span class="chk"><input type="checkbox" data-phrase="Aseptic H132 of 2018; 50 mg Lignocaine to skin&#10;Clear CSF; Slow Injection; Successful test&#10;Intrathecal: 2.0 ml 0.5% Bupivacaine + Dextrose AND 0.2 ml 100:2 Fentanyl"> Standard spinal</span>
+      <span class="chk"><input type="checkbox" id="comp-standard-spinal" data-phrase="Aseptic H132 of 2018; 50 mg Lignocaine to skin&#10;Clear CSF; Slow Injection; Successful test&#10;Intrathecal: 2.0 ml 0.5% Bupivacaine + Dextrose AND 0.2 ml 100:2 Fentanyl"> Standard spinal</span>
       <span class="chk"><input type="checkbox" data-phrase="Block inadequate, converted to general anaesthesia."> Failed/inadequate block</span>
       <span class="chk"><input type="checkbox" data-phrase="Nausea/vomiting treated."> Nausea/vomiting</span>
     </div>
@@ -475,9 +483,9 @@
     <div class="legend-row" id="param-selector">
       <span style="font-size:10.5px;color:var(--muted);">Tap a parameter, then click the chart to plot a point (5-min columns):</span>
       <button type="button" class="legend-btn active" data-p="SBP"><span class="legend-sym">∨</span> SBP</button>
+      <button type="button" class="legend-btn" data-p="MAP"><span class="legend-sym">×</span> MAP</button>
       <button type="button" class="legend-btn" data-p="DBP"><span class="legend-sym">∧</span> DBP</button>
       <button type="button" class="legend-btn" data-p="HR"><span class="legend-sym">•</span> HR</button>
-      <button type="button" class="legend-btn" data-p="MAP"><span class="legend-sym">×</span> MAP</button>
       <button type="button" class="legend-btn no-print" style="border-style:dashed;" onclick="clearActiveParam()">Clear active param</button>
     </div>
     <div class="plot-hint">Right-click (or long-press) anywhere in a column to clear that parameter's point there, wherever it sits on the chart. "Clear active param" wipes every plotted point for the parameter currently selected above.</div>
@@ -1133,6 +1141,15 @@ function quickFill(id, text){
   if(!el.value.trim()){ el.value = text; }
   else if(!el.value.includes(text)){ el.value += '; ' + text; }
 }
+// Ticking adds "Nil" (via quickFill, so it won't clobber anything already
+// typed there); unticking only clears it back out if the field still reads
+// exactly "Nil" — if the user has since typed something else, that's left alone.
+function toggleAllergyNil(cb){
+  const field = document.getElementById('allergies-field');
+  if(!field) return;
+  if(cb.checked){ quickFill('allergies-field', 'Nil'); }
+  else if(field.value.trim()==='Nil'){ field.value = ''; }
+}
 function setIfEmpty(el, value){
   if(!el) return;
   if(el.type==='checkbox' || el.type==='radio'){ if(!el.checked) el.checked = true; }
@@ -1202,37 +1219,94 @@ wireChecklist('comp-list', 'remarks');
 
 // checklists whose ticked items all collapse onto one shared line (comma-separated),
 // rebuilt from current checkbox state each time rather than re-parsed from the text,
-// so tag text containing spaces (e.g. "Prev C/S x1") never breaks detection.
+// so tag text containing spaces (e.g. "Prev C/S") never breaks detection.
+// State is keyed by containerId (not targetId) so two different checklists can
+// safely share the same target textarea without clobbering each other's line.
+// lineLabel (optional): when given, the whole line reads "Label: tag, tag" instead
+// of prefixing every tag individually (used for the "Hx:"/"Now:" rows).
+// insertAfterKey (optional): another checklist's containerId whose line this one
+// must always insert directly below when both are present — keeps e.g. Now:
+// pinned under Hx: no matter which one gets ticked first.
 const sameLineState = {};
-function wireSameLineChecklist(containerId, targetId, prefix){
+function wireSameLineChecklist(containerId, targetId, prefix, lineLabel, insertAfterKey){
   const container = document.getElementById(containerId);
   const box = document.getElementById(targetId);
   function rebuild(){
     const tags = Array.from(container.querySelectorAll('input[type=checkbox]:checked'))
-                       .map(cb => prefix + cb.dataset.tag);
-    const newLine = tags.join(', ');
+                       .map(cb => lineLabel ? cb.dataset.tag : (prefix + cb.dataset.tag));
+    const newLine = tags.length ? (lineLabel ? (lineLabel + ' ' + tags.join(', ')) : tags.join(', ')) : '';
     let lines = box.value.split('\n');
-    const prevLine = sameLineState[targetId];
+    const prevLine = sameLineState[containerId];
     const idx = (prevLine!=null) ? lines.indexOf(prevLine) : -1;
     if(idx>=0){
       if(newLine) lines[idx] = newLine;
       else lines.splice(idx,1);
     } else if(newLine){
-      const ageIdx = lines.findIndex(l=>/^\d+yo Female\.$/.test(l.trim()));
-      if(ageIdx>=0) lines.splice(ageIdx+1,0,newLine);
-      else lines.unshift(newLine);
+      let insertAt = -1;
+      if(insertAfterKey){
+        const afterLine = sameLineState[insertAfterKey];
+        const afterIdx = (afterLine!=null) ? lines.indexOf(afterLine) : -1;
+        if(afterIdx>=0) insertAt = afterIdx + 1;
+      }
+      if(insertAt<0){
+        const ageIdx = lines.findIndex(l=>/^\d+yo Female\.$/.test(l.trim()));
+        insertAt = ageIdx>=0 ? ageIdx+1 : 0;
+      }
+      lines.splice(insertAt, 0, newLine);
     }
-    sameLineState[targetId] = newLine || null;
+    sameLineState[containerId] = newLine || null;
     box.value = lines.join('\n');
   }
   container.addEventListener('change', (e)=>{ if(e.target.type==='checkbox') rebuild(); });
 }
-wireSameLineChecklist('history-checks', 'history-text', '#');
+wireSameLineChecklist('history-checks', 'history-text', '', 'Hx:');
 wireSameLineChecklist('prev-anaes-checks', 'prev-anaes-text', '');
+wireSameLineChecklist('now-checks', 'history-text', '', 'Now:', 'history-checks');
 
 // "Other" proposed operation
 function toggleOpOther(){
   document.getElementById('op-other').classList.toggle('show', document.getElementById('op-select').value==='Other');
+}
+
+// ================= Simple Case quick-fill =================
+// Ticks/sets a checkbox that's wired to a free-text checklist (NBB, Standard
+// spinal) via a bubbling change event, so the same delegated listeners that
+// handle a manual click also fire here.
+function checkAndFire(el){
+  if(!el || el.checked) return;
+  el.checked = true;
+  el.dispatchEvent(new Event('change', {bubbles:true}));
+}
+function applySimpleCase(){
+  const opSelect = document.getElementById('op-select');
+  opSelect.value = 'C/S';
+  toggleOpOther();
+
+  const consent = document.getElementById('consent-obtained');
+  if(consent) consent.checked = true;
+
+  checkAndFire(document.querySelector('#history-checks input[data-tag="NBB"]'));
+  checkAndFire(document.querySelector('#now-checks input[data-tag="Elective Repeat/DVBAC"]'));
+
+  quickFill('cvs-field', 'S1, S2, No murmurs, No failure');
+  quickFill('resp-field', 'AEB, Clear, No distress');
+
+  ['mallampati-1','teeth-no','airway-332','airway-from','airway-fon','asa-2'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.checked = true;
+  });
+
+  const premed = document.getElementById('premed-citrate');
+  if(premed) premed.checked = true;
+
+  const preAll = document.getElementById('preanaes-all');
+  if(preAll){ preAll.checked = true; togglePreAnaesAll(); }
+
+  if(!document.querySelector('.tbtn[data-t="spinal"]').classList.contains('active')) setTechnique('spinal');
+  const sensoryHeight = document.getElementById('r-sensory-height');
+  if(sensoryHeight) sensoryHeight.value = 'T4';
+
+  checkAndFire(document.getElementById('comp-standard-spinal'));
 }
 
 // ================= DOB -> age line at top of History =================
