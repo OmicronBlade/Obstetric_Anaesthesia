@@ -74,13 +74,13 @@
   .calc-box{background:var(--accent-bg);border:1px solid var(--accent);padding:5px 7px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:11px;margin-top:5px;}
   .calc-box output{font-weight:700;color:var(--accent);}
   .addrow-btn{font-size:10.5px;padding:3px 9px;margin-top:4px;border:1px dashed var(--accent);background:#fff;color:var(--accent);border-radius:3px;cursor:pointer;}
-  .tgrid .row-del{flex:0 0 16px;width:16px;border:none;border-left:1px solid #eee;background:#fff;color:#c0392b;font-size:12px;line-height:1;cursor:pointer;padding:0;}
-  .tgrid .row-del:hover{background:#fdecea;}
+  .tgrid .row-del{position:absolute;top:50%;transform:translateY(-50%);width:15px;height:15px;line-height:13px;border:1px solid #ccc;border-radius:50%;background:#fff;color:#c0392b;font-size:11px;cursor:pointer;padding:0;text-align:center;}
+  .tgrid .row-del:hover{background:#fdecea;border-color:#c0392b;}
   .totals-line{font-size:11px;margin-top:3px;text-align:right;}
   .totals-line output{font-weight:700;}
 
   /* shared time-column grid rows (page 2: time header, drugs, IV fluids, agent%, vitals sub-rows) */
-  .tgrid{display:flex;border-top:1px solid #999;}
+  .tgrid{display:flex;border-top:1px solid #999;position:relative;}
   .tgrid.first{border-top:1px solid var(--line);}
   .tgrid.last{border-bottom:1px solid var(--line);}
   .tgrid .lbl{flex:0 0 136px;width:136px;padding:1px 4px;border-right:1px solid var(--line);font-size:10px;display:flex;align-items:center;background:#fafafa;}
@@ -96,6 +96,7 @@
   .fluid-lbl input.fluid-vol{border-top:1px solid #ddd;padding-top:2px;}
   .fluid-track{flex:1 1 auto;display:flex;align-items:center;}
   .fluid-track svg{display:block;cursor:crosshair;}
+  #vitals-svg.drag-active{touch-action:none;}
   .tgrid.ga-only{display:none;}
   .show-ga .tgrid.ga-only{display:flex;}
   .chartrow{display:flex;}
@@ -110,6 +111,9 @@
   .legend-btn.active{border-color:var(--accent);background:var(--accent-bg);color:var(--accent);font-weight:600;}
   .legend-sym{font-size:13px;}
   .plot-hint{font-size:9.5px;color:var(--accent);padding:0 6px 4px;}
+  #chart-mode-selector{flex-direction:column;align-items:flex-start;gap:2px;padding:3px 0 0;border-top:none;}
+  #chart-mode-selector .mode-label{cursor:help;border-bottom:1px dotted var(--muted);font-size:10.5px;color:var(--muted);}
+  #chart-mode-selector .legend-btn{width:100%;justify-content:center;padding:2px 4px;font-size:10px;}
 
   @media print{
     body{background:#fff;padding:0;}
@@ -473,7 +477,12 @@
         <label class="chk"><input type="checkbox">Supine</label>
         <label class="chk"><input type="checkbox">Tilt/Wedge</label>
         <label class="chk"><input type="checkbox">Lithotomy</label>
-        <div class="plot-hint" style="padding-top: 10px;">Click anywhere in a column to plot the active parameter — any height in that column works, it doesn't need to be exact. </div>
+        <div class="legend-row" id="chart-mode-selector" style="padding-top: 10px;">
+          <span class="mode-label" title="Manual: click a column to plot the active parameter. Drag: press and drag across the chart to trace it continuously. Auto-cycle: each click plots, then auto-advances SBP → MAP → DBP → HR.">Charting mode:</span>
+          <button type="button" class="legend-btn active" data-mode="manual">Manual click</button>
+          <button type="button" class="legend-btn" data-mode="drag">Drag to chart</button>
+          <button type="button" class="legend-btn" data-mode="cycle">Auto-cycle</button>
+        </div>
       </div>
       <div class="axis" id="axis-labels"></div>
       <div class="plotwrap">
@@ -481,15 +490,16 @@
       </div>
     </div>
     <div class="legend-row" id="param-selector">
-      <span style="font-size:10.5px;color:var(--muted);">Tap a parameter, then click the chart to plot a point (5-min columns):</span>
+      <span style="font-size:10.5px;color:var(--muted);">Active parameter — tap to change (auto-advances in Auto-cycle mode):</span>
       <button type="button" class="legend-btn active" data-p="SBP"><span class="legend-sym">∨</span> SBP</button>
       <button type="button" class="legend-btn" data-p="MAP"><span class="legend-sym">×</span> MAP</button>
       <button type="button" class="legend-btn" data-p="DBP"><span class="legend-sym">∧</span> DBP</button>
       <button type="button" class="legend-btn" data-p="HR"><span class="legend-sym">•</span> HR</button>
       <button type="button" class="legend-btn no-print" style="border-style:dashed;" onclick="clearActiveParam()">Clear active param</button>
     </div>
-    <div class="plot-hint">Right-click (or long-press) anywhere in a column to clear that parameter's point there, wherever it sits on the chart. "Clear active param" wipes every plotted point for the parameter currently selected above.</div>
+    <div class="plot-hint">Right-click (or long-press) anywhere in a column to clear that parameter's point there, wherever it sits on the chart. "Clear active param" wipes every plotted point for the parameter currently active.</div>
     <div class="box-title" style="padding:4px 6px 0;">FiO₂ / Sats / EtCO₂ / Agent / P(AW) <span style="font-weight:400;color:var(--muted);font-size:9.5px;">— entered every 15 min (shaded columns)</span></div>
+
     <div id="grid-vitals-extra"></div>
   </div>
 
@@ -700,6 +710,7 @@ function buildDrugTrackRow(placeholder, opts={}){
   delBtn.className = 'row-del no-print';
   delBtn.title = 'Remove this drug line';
   delBtn.textContent = '\u00d7';
+  delBtn.style.left = '116px'; // sits inside the 136px label column, just left of the track
   delBtn.onclick = () => removeTrackRow(row, 'grid-drugs');
   row.appendChild(delBtn);
 
@@ -855,6 +866,7 @@ function buildFluidTrackRow(n, opts={}){
   delBtn.className = 'row-del no-print';
   delBtn.title = 'Remove this fluid line';
   delBtn.textContent = '\u00d7';
+  delBtn.style.left = '116px'; // sits inside the 136px label column, just left of the track
   delBtn.onclick = () => { removeTrackRow(row, 'grid-fluids', fluidTracks); sumIVFluids(); };
   row.appendChild(delBtn);
 
@@ -1002,12 +1014,29 @@ const PARAMS = {
 };
 const chartData = {SBP:new Array(COLS).fill(null), DBP:new Array(COLS).fill(null), HR:new Array(COLS).fill(null), MAP:new Array(COLS).fill(null)};
 let activeParam = 'SBP';
+// Auto-cycle order requested: SBP -> MAP -> DBP -> HR -> back to SBP.
+const CYCLE_ORDER = ['SBP','MAP','DBP','HR'];
+let chartMode = 'manual'; // 'manual' | 'drag' | 'cycle'
 
+function setActiveParam(p){
+  activeParam = p;
+  document.querySelectorAll('.legend-btn[data-p]').forEach(b=>b.classList.toggle('active', b.dataset.p===p));
+}
+function advanceCycle(){
+  const idx = CYCLE_ORDER.indexOf(activeParam);
+  setActiveParam(CYCLE_ORDER[(idx+1) % CYCLE_ORDER.length]);
+}
 document.querySelectorAll('.legend-btn[data-p]').forEach(btn=>{
+  btn.addEventListener('click', ()=> setActiveParam(btn.dataset.p));
+});
+document.querySelectorAll('#chart-mode-selector .legend-btn[data-mode]').forEach(btn=>{
   btn.addEventListener('click', ()=>{
-    document.querySelectorAll('.legend-btn[data-p]').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('#chart-mode-selector .legend-btn[data-mode]').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
-    activeParam = btn.dataset.p;
+    chartMode = btn.dataset.mode;
+    svg.classList.toggle('drag-active', chartMode==='drag');
+    isDragging = false; dragLastCol = null;
+    if(chartMode==='cycle') setActiveParam('SBP'); // start each cycle run from the top
   });
 });
 function clearActiveParam(){
@@ -1070,11 +1099,13 @@ function svgPoint(evt){
 }
 
 svg.addEventListener('click', (evt)=>{
+  if(chartMode==='drag') return; // drag mode plots via pointerdown/pointermove instead
   const {x,y} = svgPoint(evt);
   const col = Math.min(COLS-1, Math.max(0, Math.floor(x/COLW)));
   const val = Math.min(220, Math.max(40, yToValue(y)));
   chartData[activeParam][col] = val;
   redrawChart();
+  if(chartMode==='cycle') advanceCycle();
 });
 svg.addEventListener('contextmenu', (evt)=>{
   evt.preventDefault();
@@ -1083,6 +1114,52 @@ svg.addEventListener('contextmenu', (evt)=>{
   chartData[activeParam][col] = null;
   redrawChart();
 });
+
+// ---- Drag-to-chart: press and drag traces the active parameter continuously.
+// Uses Pointer Events (covers mouse, touch and pen) with pointer capture so the
+// drag keeps working even if the cursor slips outside the chart bounds.
+let isDragging = false, dragLastCol = null;
+function plotAtEvt(evt){
+  const {x,y} = svgPoint(evt);
+  const col = Math.min(COLS-1, Math.max(0, Math.floor(x/COLW)));
+  const val = Math.min(220, Math.max(40, yToValue(y)));
+  return {col, val};
+}
+svg.addEventListener('pointerdown', (evt)=>{
+  if(chartMode!=='drag') return;
+  evt.preventDefault();
+  svg.setPointerCapture(evt.pointerId);
+  isDragging = true;
+  const {col, val} = plotAtEvt(evt);
+  chartData[activeParam][col] = val;
+  dragLastCol = col;
+  redrawChart();
+});
+svg.addEventListener('pointermove', (evt)=>{
+  if(chartMode!=='drag' || !isDragging) return;
+  evt.preventDefault();
+  const {col, val} = plotAtEvt(evt);
+  if(dragLastCol===null || col===dragLastCol){
+    chartData[activeParam][col] = val;
+  } else {
+    // fast drags can skip columns between move events — interpolate the
+    // in-between columns so the line looks continuous rather than gappy.
+    const startCol = dragLastCol;
+    const startVal = chartData[activeParam][startCol] ?? val;
+    const step = col>startCol ? 1 : -1;
+    const span = Math.abs(col-startCol);
+    for(let i=0;i<=span;i++){
+      const c = startCol + i*step;
+      const v = Math.round(startVal + (val-startVal)*(i/span));
+      chartData[activeParam][c] = v;
+    }
+  }
+  dragLastCol = col;
+  redrawChart();
+});
+function endDrag(){ isDragging = false; dragLastCol = null; }
+svg.addEventListener('pointerup', endDrag);
+svg.addEventListener('pointercancel', endDrag);
 
 // ================= technique-driven show/hide + non-destructive prefill =================
 // Technique buttons are independent toggles (not a radio group) so a failed
@@ -1363,6 +1440,11 @@ function resetForm(){
   initDrugRows();
   rebuildTimeline();
   Object.keys(chartData).forEach(p=> chartData[p] = new Array(COLS).fill(null));
+  chartMode = 'manual';
+  isDragging = false; dragLastCol = null;
+  svg.classList.remove('drag-active');
+  document.querySelectorAll('#chart-mode-selector .legend-btn[data-mode]').forEach(b=>b.classList.toggle('active', b.dataset.mode==='manual'));
+  setActiveParam('SBP');
   redrawChart();
 }
 
