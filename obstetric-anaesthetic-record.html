@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Obstetric Anaesthetic Record</title>
+<style>
+  :root{
+    --ink:#111;
+    --line:#111;
+    --muted:#555;
+    --accent:#2b6777;
+    --accent-bg:#eaf2f3;
+    --paper:#fff;
+    --field-bg:#fbfbfa;
+  }
+  *{box-sizing:border-box;}
+  body{
+    font-family:-apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    color:var(--ink);
+    background:#d9d9d9;
+    margin:0;
+    padding:24px 0 60px;
+    font-size:12px;
+  }
+  .toolbar{
+    max-width:210mm;
+    margin:0 auto 16px;
+    padding:12px 16px;
+    background:var(--paper);
+    border:1px solid #ccc;
+    border-radius:4px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .toolbar h1{font-size:15px;margin:0;flex:1 1 260px;}
+  .toolbar p{margin:2px 0 0;font-size:11px;color:var(--muted);flex-basis:100%;}
+  .toolbar button{font-size:12px;padding:7px 14px;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:3px;cursor:pointer;}
+  .toolbar button.secondary{background:#fff;color:var(--accent);}
+  .sheet{max-width:210mm;margin:0 auto 20px;background:var(--paper);border:1px solid #bbb;padding:9mm 8mm;position:relative;}
+  h2.record-title{text-align:center;font-size:14.5px;letter-spacing:.03em;margin:0 0 7px;}
+  .footer-tag{position:absolute;bottom:4mm;right:8mm;font-size:9.5px;color:var(--muted);font-style:italic;}
+  .patient-strip{display:flex;gap:0;border:1px solid var(--line);margin-bottom:7px;}
+  .patient-strip .f{flex:1;padding:3px 6px;border-right:1px solid var(--line);}
+  .patient-strip .f:last-child{border-right:none;}
+  .patient-strip label{font-size:10px;color:var(--muted);display:block;}
+  .box{border:1px solid var(--line);margin-bottom:-1px;padding:4px 6px;}
+  .box-title{font-weight:600;margin-right:6px;}
+  .row{display:flex;flex-wrap:wrap;gap:3px 14px;align-items:center;}
+  .field{display:inline-flex;align-items:center;gap:4px;margin:1px 0;}
+  .field label{white-space:nowrap;color:var(--muted);font-size:11.5px;}
+  input[type=text], input[type=number], input[type=time], textarea, select{
+    font-family:inherit;font-size:11.5px;border:none;border-bottom:1px solid #999;background:var(--field-bg);padding:1px 3px;
+    -webkit-appearance:none;-moz-appearance:none;appearance:none;border-radius:0;vertical-align:middle;
+  }
+  input.sm{width:56px;} input.md{width:110px;} input.lg{width:200px;} input.xlg{width:300px;} input.xl{width:100%;} input.tiny{width:26px;text-align:center;} textarea.additional{width:680px;}
+  .quickfill{font-size:9.5px;padding:1px 7px;margin-left:4px;border:1px solid var(--accent);background:#fff;color:var(--accent);border-radius:10px;cursor:pointer;}
+  textarea{width:100%;resize:vertical;font-size:11.5px;}
+  .chk{display:inline-flex;align-items:center;gap:3px;margin-right:9px;white-space:nowrap;font-size:11.5px;}
+  input[type=checkbox], input[type=radio]{vertical-align:middle;margin:0;}
+  table{border-collapse:collapse;width:100%;}
+  table.grid th, table.grid td{border:1px solid var(--line);padding:2px 3px;font-size:11px;text-align:left;vertical-align:top;}
+  table.grid th{background:#f2f2f2;font-weight:600;}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:0 12px;}
+  .section-label{font-weight:600;font-size:12px;margin:6px 0 2px;}
+  .technique-bar{display:flex;gap:5px;flex-wrap:wrap;margin:3px 0 2px;}
+  .tbtn{border:1px solid var(--accent);background:#fff;color:var(--accent);padding:4px 11px;border-radius:13px;font-size:11.5px;cursor:pointer;}
+  .tbtn.active{background:var(--accent);color:#fff;}
+  .hint{font-size:10px;color:var(--accent);margin:2px 0 5px;}
+  .conditional{display:none;} .conditional.show{display:block;}
+  .subgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px;}
+  .comp-list{display:flex;flex-wrap:wrap;gap:2px 12px;margin-bottom:5px;}
+  .calc-box{background:var(--accent-bg);border:1px solid var(--accent);padding:5px 7px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:11px;margin-top:5px;}
+  .calc-box output{font-weight:700;color:var(--accent);}
+  .addrow-btn{font-size:10.5px;padding:3px 9px;margin-top:4px;border:1px dashed var(--accent);background:#fff;color:var(--accent);border-radius:3px;cursor:pointer;}
+  .tgrid .row-del{flex:0 0 16px;width:16px;border:none;border-left:1px solid #eee;background:#fff;color:#c0392b;font-size:12px;line-height:1;cursor:pointer;padding:0;}
+  .tgrid .row-del:hover{background:#fdecea;}
+  .totals-line{font-size:11px;margin-top:3px;text-align:right;}
+  .totals-line output{font-weight:700;}
+
+  /* shared time-column grid rows (page 2: time header, drugs, IV fluids, agent%, vitals sub-rows) */
+  .tgrid{display:flex;border-top:1px solid #999;}
+  .tgrid.first{border-top:1px solid var(--line);}
+  .tgrid.last{border-bottom:1px solid var(--line);}
+  .tgrid .lbl{flex:0 0 136px;width:136px;padding:1px 4px;border-right:1px solid var(--line);font-size:10px;display:flex;align-items:center;background:#fafafa;}
+  .tgrid .lbl input{width:100%;font-size:10px;border:none;background:transparent;}
+  .tgrid .cell{flex:0 0 28px;width:28px;border-right:1px solid #ccc;padding:0;}
+  .tgrid .cell input{width:100%;height:100%;border:none;background:transparent;font-size:9px;text-align:center;padding:1px 0;}
+  .tgrid .cell.q15{background:#f2f6f6;border-right-color:#8fb3b8;}
+  .tgrid .cell.q15 input{font-weight:600;}
+  .tgrid.header .lbl{font-weight:600;}
+  .tgrid.header .cell input{font-size:8.5px;color:var(--ink);text-align:left;padding-left:2px;}
+  .fluid-lbl{flex-direction:column;align-items:stretch;justify-content:center;gap:2px;padding:3px 4px;}
+  .fluid-lbl input{width:100%;font-size:9.5px;border:none;background:transparent;}
+  .fluid-lbl input.fluid-vol{border-top:1px solid #ddd;padding-top:2px;}
+  .fluid-track{flex:1 1 auto;display:flex;align-items:center;}
+  .fluid-track svg{display:block;cursor:crosshair;}
+  .tgrid.ga-only{display:none;}
+  .show-ga .tgrid.ga-only{display:flex;}
+  .chartrow{display:flex;}
+  .monlist{flex:0 0 110px;width:110px;border-right:1px solid var(--line);padding:3px 5px;}
+  .monlist .section-label{margin:0 0 2px;font-size:11px;}
+  .monlist .chk{display:flex;margin:1px 0;font-size:10.5px;}
+  .axis{flex:0 0 26px;width:26px;position:relative;}
+  .axis span{position:absolute;left:0;right:2px;text-align:right;font-size:8.5px;color:var(--muted);transform:translateY(-50%);}
+  .plotwrap{position:relative; padding-bottom: 10px;}
+  .legend-row{display:flex;gap:14px;flex-wrap:wrap;align-items:center;padding:4px 6px;border-top:1px solid var(--line);font-size:11px;}
+  .legend-btn{display:flex;align-items:center;gap:4px;border:1px solid #999;background:#fff;padding:3px 8px;border-radius:12px;cursor:pointer;font-size:11px;}
+  .legend-btn.active{border-color:var(--accent);background:var(--accent-bg);color:var(--accent);font-weight:600;}
+  .legend-sym{font-size:13px;}
+  .plot-hint{font-size:9.5px;color:var(--accent);padding:0 6px 4px;}
+
+  @media print{
+    body{background:#fff;padding:0;}
+    .toolbar, .addrow-btn, .plot-hint, .no-print{display:none;}
+    .sheet{border:none;margin:0;padding:6mm 6mm;box-shadow:none;page-break-after:always;}
+    .sheet:last-child{page-break-after:auto;}
+    @page{size:A4;margin:6mm;}
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <h1>Obstetric Anaesthetic Record — editable, printable template</h1>
+  <button onclick="window.print()">Print</button>
+  <button class="secondary" onclick="resetForm()">Reset for next patient</button>
+  <p>Nothing here is saved or sent anywhere — it lives only in this open tab. Reset before reusing for another patient. Prefilled defaults on selecting a technique are common-practice starting points, not instructions — verify and edit for the actual case.</p>
+</div>
+
+<form id="record">
+
+<!-- ============ PAGE 1 ============ -->
+<div class="sheet">
+  <h2 class="record-title">Obstetric Anaesthetic Record</h2>
+
+  <div class="patient-strip">
+    <div class="f"><label>Patient name</label><input type="text" class="xl"></div>
+    <div class="f"><label>Folder no.</label><input type="text" class="md"></div>
+    <div class="f"><label>DOB</label><input type="text" id="dob-field" class="md" placeholder="dd/mm/yyyy" onchange="updateAge()"></div>
+    <div class="f"><label>Date:</label><input type="text" class="md" placeholder="dd/mm/yyyy"></div>
+  </div>
+
+  <div class="box two-col">
+    <div>
+      <div class="field"><label class="box-title">Proposed operation:</label>
+        <select class="md" id="op-select" onchange="toggleOpOther()">
+          <option value=""></option>
+          <option>C/S</option>
+          <option>C/S + BTL</option>
+          <option>PPS</option>
+          <option>Evacuation of Uterus</option>
+          <option>Perineal Tear Repair</option>
+          <option>Other</option>
+        </select>
+        <input type="text" id="op-other" class="md conditional" placeholder="Specify">
+      </div>
+      <div class="field"><label>Surgeon:</label><input type="text" class="md"></div>
+      <div class="field"><label>Grade:</label>
+        <select class="sm">
+          <option value=""></option>
+          <option>COSMO</option>
+          <option>MO</option>
+          <option>Reg</option>
+          <option>FCOG</option>
+        </select>
+      </div>
+      <div class="field"><label>Consent obtained:</label><span class="chk"><input type="checkbox"></span></div>
+      <div class="field"><label>Nil by mouth since (time):</label><input type="time"></div>
+    </div>
+    <div>
+      <div class="box-title">Details of anaesthetist</div>
+      <div class="field"><label>Name &amp; HPCSA no:</label><input type="text" class="lg"></div>
+      <div class="row">
+        <span class="chk"><input type="checkbox" name="anaes-grade">Intern</span>
+        <span class="chk"><input type="checkbox" name="anaes-grade">Comm. Service MO</span>
+        <span class="chk"><input type="checkbox" name="anaes-grade">GP/MO &lt; 2 yrs</span>
+        <span class="chk"><input type="checkbox" name="anaes-grade">GP/MO ≥ 2 yrs</span>
+        <span class="chk"><input type="checkbox" name="anaes-grade">Registrar</span>
+        <span class="chk"><input type="checkbox" name="anaes-grade">Specialist</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="box-title" style="margin-bottom:3px;">History:</div>
+    <div class="comp-list no-print" id="history-checks">
+      <span class="chk"><input type="checkbox" data-tag="NBB"> NBB</span>
+      <span class="chk"><input type="checkbox" data-tag="RVD"> RVD</span>
+      <span class="chk"><input type="checkbox" data-tag="HPT"> HPT</span>
+      <span class="chk"><input type="checkbox" data-tag="T2DM"> T2DM</span>
+      <span class="chk"><input type="checkbox" data-tag="Prev C/S x1"> Prev C/S x1</span>
+      <span class="chk"><input type="checkbox" data-tag="Prev C/S x2"> Prev C/S x2</span>
+      <span class="chk"><input type="checkbox" data-tag="Prev C/S x3"> Prev C/S x3</span>
+      <span class="chk"><input type="checkbox" data-tag="EOPET"> EOPET</span>
+      <span class="chk"><input type="checkbox" data-tag="LOPET"> LOPET</span>
+      <span class="chk"><input type="checkbox" data-tag="↑BMI"> ↑BMI</span>
+      <span class="chk"><input type="checkbox" data-tag="Anaemia"> Anaemia</span>
+    </div>
+    <textarea id="history-text" rows="3" class="xl"></textarea>
+  </div>
+  <div class="box">
+    <div class="box-title" style="margin-bottom:3px;">Previous anaesthetic history:</div>
+    <div class="comp-list no-print" id="prev-anaes-checks">
+      <span class="chk"><input type="checkbox" data-tag="Previous Neuraxial Anaesthesia"> Previous Neuraxial Anaesthesia</span>
+      <span class="chk"><input type="checkbox" data-tag="Previous GA"> Previous GA</span>
+      <span class="chk"><input type="checkbox" data-tag="No complications"> No complications</span>
+    </div>
+    <textarea id="prev-anaes-text" rows="1" class="xl"></textarea>
+  </div>
+  <div class="box">
+    <div class="box-title">Medication:</div><textarea rows="1" class="xl"></textarea>
+    <div class="field" style="margin-top:4px;"><label class="box-title">Allergies:</label><input type="text" class="lg"></div>
+  </div>
+
+  <div class="box">
+    <div class="row">
+      <div class="box-title">General examination</div>
+      <div class="field"><label>Height (m)</label><input type="number" step="0.01" class="sm"></div>
+      <div class="field"><label>Mass (kg)</label><input type="number" step="0.1" class="sm"></div>
+      <div class="field"><label>BP</label><input type="text" class="sm" placeholder="       /"></div>
+      <div class="field"><label>Pulse</label><input type="number" class="sm"></div>
+      <div class="field"><label>O₂ Sats (%)</label><input type="number" class="sm"></div>
+    </div>
+    <div class="field"><label>CVS:</label><input type="text" id="cvs-field" class="lg"><button type="button" class="quickfill" onclick="quickFill('cvs-field','S1, S2, No murmurs, No failure')">Normal</button></div>
+    <div class="field"><label>Resp:</label><input type="text" id="resp-field" class="lg"><button type="button" class="quickfill" onclick="quickFill('resp-field','AEB, Clear, No distress')">Normal</button></div>
+    <div class="field"><label>Notes:</label><textarea rows="1" class="additional"></textarea></div>
+  </div>
+
+  <div class="box">
+    <div class="row" style="justify-content:space-between;">
+      <div class="box-title">Airway examination</div>
+      <div class="field"><label>Mallampati score:</label>
+        <span class="chk"><input type="radio" name="mallampati">1</span>
+        <span class="chk"><input type="radio" name="mallampati">2</span>
+        <span class="chk"><input type="radio" name="mallampati">3</span>
+        <span class="chk"><input type="radio" name="mallampati">4</span>
+      </div>
+    </div>
+    <div class="row">
+      <div class="field"><label>Loose/awkward teeth:</label>
+        <span class="chk"><input type="radio" name="teeth">Yes</span>
+        <span class="chk"><input type="radio" name="teeth">No</span>
+      </div>
+      <span class="chk"><input type="checkbox">3:3:2</span>
+      <span class="chk"><input type="checkbox">BMI ≥ 30</span>
+      <div class="field"><label>Neck:</label>
+        <span class="chk"><input type="checkbox">FROM</span>
+        <span class="chk"><input type="checkbox">FON Access Assessed</span>
+      </div>
+    </div>
+    <div class="field"><label>Additional:</label><input type="text" class="xlg"></div>
+    <div class="field"><label>ASA rating:</label>
+      <span class="chk"><input type="radio" name="asa">2</span>
+      <span class="chk"><input type="radio" name="asa">3</span>
+      <span class="chk"><input type="radio" name="asa">4</span>
+      <span class="chk"><input type="radio" name="asa">5</span>
+      <span class="chk"><input type="checkbox" id="asa-e">E</span>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="box-title">Investigations</div>
+    <div class="row">
+      <div class="field"><label>Hb</label><input type="number" step="0.1" class="sm"></div>
+      <div class="field"><label>Platelets</label><input type="number" class="sm"></div>
+      <div class="field"><label>Time:</label><input type="time"></div>
+      <div class="field"><label>Urea &amp; electrolytes:</label><input type="text" class="lg"></div>
+    </div>
+    <div class="field"><label>Notes:</label><textarea rows="1" class="additional"></textarea></div>
+  </div>
+
+  <div class="box two-col">
+    <div>
+      <div class="box-title">Premedication:</div>
+      <span class="chk"><input type="checkbox">0.3M Sodium Citrate 30 mL per os</span>
+      <div class="field"><label>Time:</label><input type="time"></div>
+    </div>
+    <div>
+      <div class="box-title">Pre-anaesthesia check:<input type="checkbox" id="preanaes-all" onchange="togglePreAnaesAll()" title="Tick/untick all three" style="margin-left:5px;"></div>
+      <span class="chk"><input type="checkbox" id="preanaes-iv">Freely running IV</span>
+      <span class="chk"><input type="checkbox" id="preanaes-suction">Suction</span>
+      <span class="chk"><input type="checkbox" id="preanaes-machine">Machine check</span>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="box-title">Technique</div>
+    <div class="technique-bar">
+      <button type="button" class="tbtn" data-t="spinal" onclick="setTechnique('spinal')">Spinal</button>
+      <button type="button" class="tbtn" data-t="epidural" onclick="setTechnique('epidural')">Epidural</button>
+      <button type="button" class="tbtn" data-t="cse" onclick="setTechnique('cse')">CSE</button>
+      <button type="button" class="tbtn" data-t="general" onclick="setTechnique('general')">General</button>
+      <button type="button" class="tbtn" data-t="sedation" onclick="setTechnique('sedation')">Sedation</button>
+      <button type="button" class="tbtn" style="border-style:dashed;" onclick="resetTechnique()">Clear technique</button>
+    </div>
+    <div class="hint">Techniques are independent toggles — click again to turn one off. Select a neuraxial technique together with General for a failed block converted to GA. Selecting a technique pre-fills common defaults into empty fields only, and ticks ECG/Oximetry/NIBP (plus Capnograph for General) under Monitoring.</div>
+
+    <div id="regional-block" class="conditional">
+      <div class="subgrid">
+        <div>
+          <div class="section-label">Regional anaesthesia</div>
+          <div class="field"><label>Spinal interspace:</label><input type="text" id="r-interspace" class="sm"></div>
+          <div class="field"><label>Number of attempts:</label><input type="number" id="r-attempts" class="sm"></div>
+          <div class="field"><label>Position of patient:</label>
+            <span class="chk"><input type="radio" name="r-position" id="r-pos-lateral">Lateral</span>
+            <span class="chk"><input type="radio" name="r-position" id="r-pos-sitting">Sitting</span>
+          </div>
+          <div class="field"><label>Spinal needle — type:</label>
+            <span class="chk"><input type="radio" name="r-spinal-type" id="r-spinal-quincke">Quincke</span>
+            <span class="chk"><input type="radio" name="r-spinal-type" id="r-spinal-atraumatic">Atraumatic/PPN</span>
+          </div>
+          <div class="field"><label>Size (gauge):</label><input type="text" id="r-spinal-gauge" class="sm"></div>
+        </div>
+        <div>
+          <div class="section-label">&nbsp;</div>
+          <div class="field"><label>Epidural needle — type:</label>
+            <span class="chk"><input type="radio" name="r-epi-type" id="r-epi-tuohy">Tuohy</span>
+            <span class="chk"><input type="radio" name="r-epi-type" id="r-epi-other">Other</span>
+          </div>
+          <div class="field"><label>Size (gauge):</label><input type="text" id="r-epi-gauge" class="sm"> <label>Epidural Space:</label><input type="text" class="sm"></div>
+          <div class="field"><label>Loss of resistance:</label>
+            <span class="chk"><input type="radio" name="r-lor" id="r-lor-air">To air</span>
+            <span class="chk"><input type="radio" name="r-lor" id="r-lor-saline">To saline</span>
+          </div>
+          <div class="field"><label>Epidural catheter size (gauge):</label><input type="text" class="sm"></div>
+          <div class="field"><label>Length within epidural space (cm):</label><input type="number" class="sm"></div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field"><label>Sensory height (to cold) pre-incision:</label><input type="text" class="md"></div>
+      </div>
+    </div>
+
+    <div id="general-block" class="conditional">
+      <div class="subgrid">
+        <div>
+          <div class="section-label">General anaesthesia — induction sequence</div>
+          <span class="chk"><input type="checkbox" id="g-preox">Preoxygenation</span>
+          <span class="chk"><input type="checkbox" id="g-cricoid">Cricoid pressure</span>
+          <div class="field" style="margin-top:3px;"><span class="chk"><input type="checkbox" id="g-rsi">Laryngoscopy &amp; rapid tracheal intubation with a cuffed tube</span></div>
+          <div class="row">
+            <span class="chk"><input type="checkbox">Check stomach</span>
+            <div class="field"><label>Size of tracheal tube (mm):</label><input type="text" id="g-ett-size" class="sm"></div>
+          </div>
+          <div class="row">
+            <div class="field"><label>Air entry — L</label><span class="chk"><input type="checkbox"></span><label>R</label><span class="chk"><input type="checkbox"></span></div>
+            <div class="field"><label>No Aspiration Observed</label><span class="chk"><input type="checkbox"></span></div>
+          </div>
+          <div class="row">
+            <div class="field"><label>Length inserted (cm):</label><input type="text" class="sm">
+                               <label>Cuff pressure (cmH₂O):</label><input type="text" class="sm"></div>
+          </div>
+        </div>
+        <div>
+          <div class="section-label">Alternative airway management</div>
+          <span class="chk"><input type="checkbox">Face mask</span>
+          <span class="chk"><input type="checkbox">LMA</span>
+          <span class="chk"><input type="checkbox" id="g-awake">Awake intubation</span>
+          <div class="section-label">Ventilation</div>
+          <span class="chk"><input type="radio" name="g-vent" id="g-vent-spont">Spontaneous</span>
+          <span class="chk"><input type="radio" name="g-vent" id="g-vent-controlled">Controlled</span>
+          <div class="field"><span class="chk"><input type="checkbox" id="g-o2air">O₂/Air</span><span class="chk"><input type="checkbox">O₂/Nitrous oxide</span><label>FiO₂:</label><input type="text" class="sm"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="sedation-block" class="conditional">
+      <div class="box-title">Notes</div>
+      <textarea rows="3" class="xl" placeholder="Sedation notes"></textarea>
+    </div>
+  </div>
+
+  <div class="box" style="min-height:26mm;">
+    <div class="box-title">Remarks and complications</div>
+    <div class="comp-list" id="comp-list">
+      <span class="chk"><input type="checkbox" data-phrase="Aseptic H132 of 2018; 50 mg Lignocaine to skin&#10;Clear CSF; Slow Injection; Successful test&#10;Intrathecal: 2.0 ml 0.5% Bupivacaine + Dextrose AND 0.2 ml 100:2 Fentanyl"> Standard spinal</span>
+      <span class="chk"><input type="checkbox" data-phrase="Block inadequate, converted to general anaesthesia."> Failed/inadequate block</span>
+      <span class="chk"><input type="checkbox" data-phrase="Nausea/vomiting treated."> Nausea/vomiting</span>
+    </div>
+    <textarea id="remarks" rows="4" placeholder="Free text — note awake intubation details and other complications here. Ticking an item above adds/removes a line."></textarea>
+  </div>
+</div>
+
+<!-- ============ PAGE 2 ============ -->
+<div class="sheet">
+  <h2 class="record-title">Obstetric Anaesthetic Record</h2>
+
+  <div class="box">
+    <div class="box-title">Times</div>
+    <div class="row">
+      <div class="field"><label>Spinal/Induction (I):</label><input type="time" id="t-induction" onchange="calcTimes(); rebuildTimeline();"></div>
+      <div class="field"><label>Skin Incision (S):</label><input type="time" id="t-skin" onchange="calcTimes()"></div>
+      <div class="field"><label>Uterine Incision (U):</label><input type="time" id="t-incision" onchange="calcTimes()"></div>
+      <div class="field"><label>Cord Clamp (D):</label><input type="time" id="t-delivery" onchange="calcTimes()"></div>
+    </div>
+    <div class="calc-box">
+      <span>I–S interval: <output id="out-is">—</output> min</span>
+      <span>I–D interval: <output id="out-id">—</output> min</span>
+      <span>U–D interval: <output id="out-ud">—</output> sec</span>
+    </div>
+  </div>
+
+  <div class="box" style="padding:0;">
+    <div class="box-title" style="padding:4px 6px 2px;">
+      Timeline
+      <button type="button" class="addrow-btn" onclick="addDrugTrackRow()">+ Add drug line</button>
+      <span style="font-weight:400;color:var(--muted);font-size:9.5px;">— Type or pick a drug on each line. Right-click (or long-press) a dose to remove it. Use × at the end of a line to delete the whole line.</span>
+    </div>
+    <div id="grid-time"></div>
+    <div id="grid-drugs"></div>
+    <datalist id="drug-options">
+      <option value="Cefzol">
+      <option value="Oxytocin">
+      <option value="Ondansetron">
+      <option value="Perfalgan">
+      <option value="Dexamethasone">
+      <option value="Morphine">
+      <option value="Indomethacin">
+      <option value="TXA">
+      <option value="CaCl">
+      <option value="Ca-Gluconate">
+      <option value="Clindamycin">
+      <option value="Syntometrine">
+      <option value="PEP (ml/hour)">
+      <option value="PEP (Bolus)">
+    </datalist>
+    <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;padding:4px 6px 2px;">
+      <div class="box-title" style="margin:0;">
+        IV fluids
+        <button type="button" class="addrow-btn" onclick="addFluidTrackRow()">+ Add fluid line</button>
+      </div>
+      <div class="legend-row" id="fluid-mode-selector" style="padding:2px 0 0;border-top:none;">
+        <span style="font-size:10px;color:var(--muted);">Tap Start, Finish or Ongoing, then click a fluid's line:</span>
+        <button type="button" class="legend-btn active" data-m="start"><span class="legend-sym" style="color:#1d5fd6;">○</span> Start</button>
+        <button type="button" class="legend-btn" data-m="finish"><span class="legend-sym" style="color:#c0392b;">×</span> Finish</button>
+        <button type="button" class="legend-btn" data-m="ongoing"><span class="legend-sym" style="color:#b3720a;">></span> Ongoing</button>
+      </div>
+    </div>
+    <div id="grid-fluids"></div>
+    <datalist id="fluid-options">
+      <option value="PLL">
+      <option value="Ringer's Lactate">
+      <option value="Normal Saline">
+      <option value="Voluven">
+      <option value="PRBC">
+      <option value="FFP">
+      <option value="FDP">
+      <option value="MgSO4">
+    </datalist>
+    <div class="row" style="padding:3px 6px;justify-content:right;">
+      <div class="totals-line" style="margin:0;">Total: <output id="fluids-total">0</output> mL</div>
+    </div>
+    <div class="chartrow">
+      <div class="monlist">
+        <div class="section-label">Monitoring</div>
+        <label class="chk"><input type="checkbox" id="mon-ecg">ECG</label>
+        <label class="chk"><input type="checkbox" id="mon-oximetry">Oximetry</label>
+        <label class="chk"><input type="checkbox" id="mon-nibp">NIBP</label>
+        <label class="chk"><input type="checkbox" id="mon-capnograph">Capnograph</label>
+        <label class="chk"><input type="checkbox" id="mon-temp">Temp</label>
+        <label class="chk"><input type="checkbox" id="mon-arterial">Arterial line</label>
+        <div class="section-label" style="margin-top:6px;">Position</div>
+        <label class="chk"><input type="checkbox">Supine</label>
+        <label class="chk"><input type="checkbox">Tilt/Wedge</label>
+        <label class="chk"><input type="checkbox">Lithotomy</label>
+        <div class="plot-hint" style="padding-top: 10px;">Click anywhere in a column to plot the active parameter — any height in that column works, it doesn't need to be exact. </div>
+      </div>
+      <div class="axis" id="axis-labels"></div>
+      <div class="plotwrap">
+        <svg id="vitals-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+    </div>
+    <div class="legend-row" id="param-selector">
+      <span style="font-size:10.5px;color:var(--muted);">Tap a parameter, then click the chart to plot a point (5-min columns):</span>
+      <button type="button" class="legend-btn active" data-p="SBP"><span class="legend-sym">∨</span> SBP</button>
+      <button type="button" class="legend-btn" data-p="DBP"><span class="legend-sym">∧</span> DBP</button>
+      <button type="button" class="legend-btn" data-p="HR"><span class="legend-sym">•</span> HR</button>
+      <button type="button" class="legend-btn" data-p="MAP"><span class="legend-sym">×</span> MAP</button>
+      <button type="button" class="legend-btn no-print" style="border-style:dashed;" onclick="clearActiveParam()">Clear active param</button>
+    </div>
+    <div class="plot-hint">Right-click (or long-press) anywhere in a column to clear that parameter's point there, wherever it sits on the chart. "Clear active param" wipes every plotted point for the parameter currently selected above.</div>
+    <div class="box-title" style="padding:4px 6px 0;">FiO₂ / Sats / EtCO₂ / Agent / P(AW) <span style="font-weight:400;color:var(--muted);font-size:9.5px;">— entered every 15 min (shaded columns)</span></div>
+    <div id="grid-vitals-extra"></div>
+  </div>
+
+  <div class="box two-col">
+    <div class="field"><label>Blood loss (mL):</label><input type="number" class="sm"></div>
+    <div class="field"><label>Urine output (mL):</label><input type="number" class="sm"></div>
+  </div>
+
+  <div class="box">
+    <div class="row" style="justify-content:space-between;align-items:center;">
+      <div class="box-title" style="margin:0;">Recovery room record</div>
+      <span class="chk"><input type="checkbox" id="recovery-toggle" onchange="toggleRecoveryTable()">Show recovery room table</span>
+    </div>
+    <div id="recovery-table-wrap" class="conditional">
+      <table class="grid" id="recovery-table">
+        <tr><th>Time</th><th>BP</th><th>Pulse</th><th>Resp. pattern &amp; rate</th><th>Urine</th><th>Vomitus</th><th>Wound</th><th>Drugs &amp; IV therapy</th><th>State of consciousness</th><th>Signature</th></tr>
+        <tr><td><input type="time"></td><td><input type="text" class="sm"></td><td><input type="text" class="sm"></td><td><input type="text" class="sm"></td><td><input type="text" class="sm"></td><td><input type="text" class="sm"></td><td><input type="text" class="sm"></td><td><input type="text" class="sm"></td><td><input type="text" class="sm"></td><td><input type="text" class="sm"></td></tr>
+        <tr><td><input type="time"></td><td><input type="text" class="sm"></td><td><input type="text" class="sm"></td><td><input type="text" class="sm"></td><td><input type="text" class="sm"></td><td><input type="text" class="sm"></td><td><input type="text" class="sm"></td><td><input type="text" class="sm"></td><td><input type="text" class="sm"></td><td><input type="text" class="sm"></td></tr>
+      </table>
+      <button type="button" class="addrow-btn" onclick="addRecoveryRow()">+ Add row</button>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="row">
+      <div class="box-title">On admission to recovery:</div>
+      <div class="field"><label>BP</label><input type="text" class="sm" placeholder="       /"></div>
+      <div class="field"><label>Pulse</label><input type="number" class="sm"></div>
+      <div class="field"><label>Sats (%)</label><input type="number" class="sm"></div>
+    </div>
+  </div>
+
+  <div class="box two-col">
+    <div class="field"><label>Height of block — admission to recovery:</label><input type="text" class="md"></div>
+    <div class="field"><label>Height of block — discharge from recovery:</label><input type="text" class="md"></div>
+  </div>
+  <div class="box">
+    <div class="field">
+      <label class="box-title">Complications in recovery room:</label>
+      <span class="chk"><input type="checkbox">No complications</span>
+    </div>
+    <textarea rows="2" class="xl" style="margin-top:4px;"></textarea>
+  </div>
+</div>
+
+</form>
+
+<script>
+// ================= shared time-column grid rows =================
+// 37 columns of 5 min each = 0..180 min (3 hr), anchored to Spinal/Induction time.
+const COLS = 37, COLW = 16;
+
+function chartStartMinutes(){
+  const v = document.getElementById('t-induction').value;
+  if(!v) return null;
+  const [h,m] = v.split(':').map(Number);
+  return h*60+m;
+}
+// Floor to the nearest 15-min mark at or before the Spinal/Induction time
+// (10:13 -> 10:00, 15:27 -> 15:15, 12:03 -> 12:00).
+function chartStartRounded(){
+  const raw = chartStartMinutes();
+  if(raw===null) return null;
+  return raw - (raw % 15);
+}
+function minutesToClock(mins){
+  const t = ((Math.round(mins)%1440)+1440)%1440;
+  const hh = String(Math.floor(t/60)).padStart(2,'0');
+  const mm = String(t%60).padStart(2,'0');
+  return hh+':'+mm;
+}
+
+// opts.group: merge this many 5-min columns into one wider cell (used to give
+// the FiO2/Sats/etc. row one continuous 15-min block instead of narrow cells
+// with gaps between them). Omit/1 = one cell per 5-min column, as before.
+function buildRow(containerId, label, opts={}){
+  const container = document.getElementById(containerId);
+  const row = document.createElement('div');
+  row.className = 'tgrid' + (opts.first?' first':'') + (opts.last?' last':'') + (opts.header?' header':'') + (opts.gaOnly?' ga-only':'');
+  const lbl = document.createElement('div');
+  lbl.className = 'lbl';
+  if(opts.labelInput){
+    const inp = document.createElement('input');
+    inp.type='text'; inp.placeholder=label;
+    lbl.appendChild(inp);
+  } else {
+    lbl.textContent = label;
+  }
+  row.appendChild(lbl);
+  const group = opts.group || 1;
+  for(let i=0;i<COLS;i+=group){
+    const span = Math.min(group, COLS-i);
+    const w = span*COLW;
+    const isQ15 = group>1 || i%3===0;
+    const cell = document.createElement('div');
+    cell.className = 'cell' + (isQ15?' q15':'');
+    cell.style.width = w+'px';
+    cell.style.flex = '0 0 '+w+'px';
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    if(opts.placeholder) inp.placeholder = i===0 ? opts.placeholder : '';
+    cell.appendChild(inp);
+    row.appendChild(cell);
+  }
+  container.appendChild(row);
+}
+
+// Time header: wide cells every 30 min (6 x 5-min columns), pre-filled (and
+// still editable) with the computed clock time, starting at the 15-min mark
+// at/before the Spinal/Induction time.
+const HEADER_GROUP = 6;
+function buildTimeHeader(){
+  const container = document.getElementById('grid-time');
+  container.innerHTML = '';
+  const row = document.createElement('div');
+  row.className = 'tgrid first header';
+  const lbl = document.createElement('div');
+  lbl.className = 'lbl';
+  lbl.textContent = 'Time:';
+  row.appendChild(lbl);
+  const start = chartStartRounded();
+  for(let i=0;i<COLS;i+=HEADER_GROUP){
+    const span = Math.min(HEADER_GROUP, COLS-i);
+    const w = span*COLW;
+    const cell = document.createElement('div');
+    cell.className = 'cell q15';
+    cell.style.width = w+'px';
+    cell.style.flex = '0 0 '+w+'px';
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.value = start!==null ? minutesToClock(start + i*5) : '';
+    cell.appendChild(inp);
+    row.appendChild(cell);
+  }
+  container.appendChild(row);
+}
+function rebuildTimeline(){
+  buildTimeHeader();
+}
+
+// ================= Drugs: click a line, type the dose (like fluids, but points not intervals) =================
+const DRUG_H = 18;
+// Standard doses — suggested (and editable) only for the first dose logged on a
+// line; every dose after that always asks fresh, since repeat doses vary.
+const DRUG_DEFAULTS = {
+  'cefzol': '2g',
+  'oxytocin': '2.5 IU',
+  'ondansetron': '4mg',
+  'perfalgan': '1g',
+  'dexamethasone': '8mg',
+  'morphine': '10mg IM',
+  'indomethacin': '100mg PR',
+  'txa': '1g',
+  'cacl': '10 ml',
+  'ca-gluconate': '10 ml',
+  'clindamycin': '600 mg',
+  'syntometrine': '5 IU + 0.5 mg',
+  'pep (ml/hour)': '20',
+  'pep (bolus)': '100'
+};
+// Drugs whose standard dose is suggested again for every new point on the
+// line, not just the first — PEP boluses are routinely repeated at the same
+// starting dose, editable down (e.g. to 50) when needed.
+const DRUG_REPEAT_DEFAULTS = new Set(['pep (bolus)']);
+// Remove a single drug/fluid line and reassign the first/last border classes
+// to the new end rows so the boxed grid still looks contiguous. Keeps at
+// least one line so the timeline grid never collapses to nothing.
+function removeTrackRow(row, containerId, trackArray){
+  const container = document.getElementById(containerId);
+  if(container.children.length<=1) return;
+  const wasFirst = row.classList.contains('first');
+  const wasLast = row.classList.contains('last');
+  row.remove();
+  if(trackArray){
+    const idx = trackArray.findIndex(t=>t.row===row);
+    if(idx>=0) trackArray.splice(idx,1);
+  }
+  const remaining = Array.from(container.children);
+  if(wasFirst && remaining.length) remaining[0].classList.add('first');
+  if(wasLast && remaining.length) remaining[remaining.length-1].classList.add('last');
+}
+function buildDrugTrackRow(placeholder, opts={}){
+  const container = document.getElementById('grid-drugs');
+  const row = document.createElement('div');
+  row.className = 'tgrid' + (opts.first?' first':'') + (opts.last?' last':'');
+
+  const lbl = document.createElement('div');
+  lbl.className = 'lbl';
+  const nameInp = document.createElement('input');
+  nameInp.type = 'text'; nameInp.placeholder = placeholder || 'Drug';
+  nameInp.setAttribute('list', 'drug-options');
+  if(opts.value) nameInp.value = opts.value;
+  lbl.appendChild(nameInp);
+  row.appendChild(lbl);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'fluid-track';
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS,'svg');
+  svg.setAttribute('viewBox', `0 0 ${COLS*COLW} ${DRUG_H}`);
+  svg.setAttribute('width', COLS*COLW);
+  svg.setAttribute('height', DRUG_H);
+  wrap.appendChild(svg);
+  row.appendChild(wrap);
+
+  const delBtn = document.createElement('button');
+  delBtn.type = 'button';
+  delBtn.className = 'row-del no-print';
+  delBtn.title = 'Remove this drug line';
+  delBtn.textContent = '\u00d7';
+  delBtn.onclick = () => removeTrackRow(row, 'grid-drugs');
+  row.appendChild(delBtn);
+
+  container.appendChild(row);
+
+  const points = []; // {col, dose}
+  let firstDoseGiven = false;
+  function colFromEvt(e){
+    const rect = svg.getBoundingClientRect();
+    const x = (e.clientX-rect.left)/rect.width*(COLS*COLW);
+    return Math.min(COLS-1, Math.max(0, Math.floor(x/COLW)));
+  }
+  function redraw(){
+    svg.innerHTML = '';
+    for(let c=0;c<=COLS;c+=3){
+      const x = c*COLW;
+      const gl = document.createElementNS(svgNS,'line');
+      gl.setAttribute('x1',x); gl.setAttribute('x2',x);
+      gl.setAttribute('y1',1); gl.setAttribute('y2',DRUG_H-1);
+      gl.setAttribute('stroke','#eee'); gl.setAttribute('stroke-width',1);
+      svg.appendChild(gl);
+    }
+    points.forEach(pt=>{
+      const x = (pt.col+0.5)*COLW;
+      const tick = document.createElementNS(svgNS,'line');
+      tick.setAttribute('x1',x); tick.setAttribute('x2',x);
+      tick.setAttribute('y1',DRUG_H-5); tick.setAttribute('y2',DRUG_H-1);
+      tick.setAttribute('stroke','#333'); tick.setAttribute('stroke-width',1.5);
+      svg.appendChild(tick);
+      const t = document.createElementNS(svgNS,'text');
+      t.setAttribute('x',x); t.setAttribute('y',DRUG_H-7);
+      t.setAttribute('text-anchor','middle');
+      t.setAttribute('font-size','9'); t.setAttribute('font-weight','700');
+      t.setAttribute('fill','#111');
+      t.textContent = pt.dose;
+      svg.appendChild(t);
+    });
+  }
+  svg.addEventListener('click', (e)=>{
+    const col = colFromEvt(e);
+    const existing = points.find(p=>p.col===col);
+    let suggestion = existing ? existing.dose : '';
+    if(!existing){
+      const key = nameInp.value.trim().toLowerCase();
+      if(DRUG_DEFAULTS[key] && (!firstDoseGiven || DRUG_REPEAT_DEFAULTS.has(key))) suggestion = DRUG_DEFAULTS[key];
+    }
+    const dose = prompt('Dose given:', suggestion);
+    if(dose===null) return; // cancelled — leave as-is
+    const trimmed = dose.trim();
+    if(trimmed===''){
+      if(existing) points.splice(points.indexOf(existing),1);
+    } else if(existing){
+      existing.dose = trimmed;
+    } else {
+      points.push({col, dose: trimmed});
+      firstDoseGiven = true;
+    }
+    if(points.length===0) firstDoseGiven = false;
+    redraw();
+  });
+  svg.addEventListener('contextmenu', (e)=>{
+    e.preventDefault();
+    const col = colFromEvt(e);
+    let nearest=-1, best=Infinity;
+    points.forEach((p,i)=>{ const d=Math.abs(p.col-col); if(d<best){ best=d; nearest=i; } });
+    if(nearest>=0 && best<=2){
+      points.splice(nearest,1);
+      if(points.length===0) firstDoseGiven = false;
+      redraw();
+    }
+  });
+  redraw();
+}
+function initDrugRows(){
+  document.getElementById('grid-drugs').innerHTML = '';
+  buildDrugTrackRow('Drug', {first:true, value:'Cefzol'});
+  buildDrugTrackRow('Drug', {value:'Oxytocin'});
+  buildDrugTrackRow('Drug', {value:'Ondansetron'});
+  buildDrugTrackRow('Drug');
+  buildDrugTrackRow('Drug');
+  buildDrugTrackRow('Drug', {last:true});
+}
+function addDrugTrackRow(){
+  const rows = document.querySelectorAll('#grid-drugs .tgrid');
+  if(rows.length) rows[rows.length-1].classList.remove('last');
+  buildDrugTrackRow('Drug', {last:true});
+}
+
+buildTimeHeader();
+initDrugRows();
+buildRow('grid-vitals-extra', 'FiO₂', {first:true, group:3});
+buildRow('grid-vitals-extra', 'Sat %', {group:3});
+buildRow('grid-vitals-extra', 'EtCO₂', {gaOnly:true, group:3});
+buildRow('grid-vitals-extra', 'Agent Inspired %', {gaOnly:true, group:3});
+buildRow('grid-vitals-extra', 'P(AW)', {gaOnly:true, last:true, group:3});
+
+// ================= IV fluids: Start/Finish timeline (like SBP/DBP) =================
+const FL_W = COLS*COLW; // same total width as the rest of the shared timeline
+const FL_H = 34;
+let fluidMode = 'start';
+const fluidTracks = [];
+// Standard bag sizes, used to prepopulate Vol (mL) when a known name is entered —
+// the field stays free text, this just fills in the usual default.
+const FLUID_DEFAULTS = {
+  'pll': 1000,
+  "ringer's lactate": 1000,
+  'ringers lactate': 1000,
+  'normal saline': 1000,
+  'voluven': 500,
+  'prbc': 300,
+  'ffp': 280,
+  'fdp': 200,
+  'mgso4': 200
+};
+
+function buildFluidTrackRow(n, opts={}){
+  const container = document.getElementById('grid-fluids');
+  const row = document.createElement('div');
+  row.className = 'tgrid' + (opts.first?' first':'') + (opts.last?' last':'');
+
+  const lbl = document.createElement('div');
+  lbl.className = 'lbl fluid-lbl';
+  const nameInp = document.createElement('input');
+  nameInp.type = 'text'; nameInp.placeholder = 'Fluid '+n;
+  nameInp.setAttribute('list', 'fluid-options');
+  const volInp = document.createElement('input');
+  volInp.type = 'number'; volInp.step = 'any'; volInp.placeholder = 'Vol (mL)';
+  volInp.className = 'fluid-vol';
+  volInp.addEventListener('input', sumIVFluids);
+  nameInp.addEventListener('change', ()=>{
+    const key = nameInp.value.trim().toLowerCase();
+    if(FLUID_DEFAULTS[key] && !volInp.value){
+      volInp.value = FLUID_DEFAULTS[key];
+      sumIVFluids();
+    }
+  });
+  lbl.appendChild(nameInp);
+  lbl.appendChild(volInp);
+  row.appendChild(lbl);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'fluid-track';
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS,'svg');
+  svg.setAttribute('viewBox', `0 0 ${FL_W} ${FL_H}`);
+  svg.setAttribute('width', FL_W);
+  svg.setAttribute('height', FL_H);
+  wrap.appendChild(svg);
+  row.appendChild(wrap);
+
+  const delBtn = document.createElement('button');
+  delBtn.type = 'button';
+  delBtn.className = 'row-del no-print';
+  delBtn.title = 'Remove this fluid line';
+  delBtn.textContent = '\u00d7';
+  delBtn.onclick = () => { removeTrackRow(row, 'grid-fluids', fluidTracks); sumIVFluids(); };
+  row.appendChild(delBtn);
+
+  container.appendChild(row);
+
+  // endType: 'finish' (×, red) or 'ongoing' (→, amber, dashed line — bag still running)
+  const state = {start:null, end:null, endType:null};
+
+  function colFromEvt(e){
+    const rect = svg.getBoundingClientRect();
+    const x = (e.clientX-rect.left)/rect.width*FL_W;
+    return Math.min(COLS-1, Math.max(0, Math.floor(x/COLW)));
+  }
+  function redraw(){
+    svg.innerHTML = '';
+    for(let c=0;c<=COLS;c+=3){
+      const x = c*COLW;
+      const gl = document.createElementNS(svgNS,'line');
+      gl.setAttribute('x1',x); gl.setAttribute('x2',x);
+      gl.setAttribute('y1',2); gl.setAttribute('y2',FL_H-2);
+      gl.setAttribute('stroke','#eee'); gl.setAttribute('stroke-width',1);
+      svg.appendChild(gl);
+    }
+    const midY = FL_H/2;
+    if(state.start!==null && state.end!==null){
+      const line = document.createElementNS(svgNS,'line');
+      line.setAttribute('x1',(state.start+0.5)*COLW);
+      line.setAttribute('x2',(state.end+0.5)*COLW);
+      line.setAttribute('y1',midY); line.setAttribute('y2',midY);
+      line.setAttribute('stroke','#333'); line.setAttribute('stroke-width',1.5);
+      if(state.endType==='ongoing') line.setAttribute('stroke-dasharray','3,2');
+      svg.appendChild(line);
+    }
+    if(state.start!==null){
+      const t = document.createElementNS(svgNS,'text');
+      t.setAttribute('x',(state.start+0.5)*COLW); t.setAttribute('y',midY);
+      t.setAttribute('text-anchor','middle'); t.setAttribute('dominant-baseline','middle');
+      t.setAttribute('font-size','14'); t.setAttribute('font-weight','700');
+      t.setAttribute('fill','#1d5fd6'); t.textContent = '○';
+      svg.appendChild(t);
+    }
+    if(state.end!==null){
+      const t = document.createElementNS(svgNS,'text');
+      t.setAttribute('x',(state.end+0.5)*COLW); t.setAttribute('y',midY);
+      t.setAttribute('text-anchor','middle'); t.setAttribute('dominant-baseline','middle');
+      t.setAttribute('font-size','14'); t.setAttribute('font-weight','700');
+      if(state.endType==='ongoing'){ t.setAttribute('fill','#b3720a'); t.textContent = '>'; }
+      else { t.setAttribute('fill','#c0392b'); t.textContent = '×'; }
+      svg.appendChild(t);
+    }
+  }
+  svg.addEventListener('click', (e)=>{
+    const col = colFromEvt(e);
+    if(fluidMode==='start'){ state.start = col; }
+    else { state.end = col; state.endType = fluidMode; }
+    redraw();
+  });
+  svg.addEventListener('contextmenu', (e)=>{
+    e.preventDefault();
+    const col = colFromEvt(e);
+    if(state.start!==null && state.end!==null){
+      if(Math.abs(state.start-col) <= Math.abs(state.end-col)) state.start=null;
+      else { state.end=null; state.endType=null; }
+    } else if(state.start!==null){ state.start=null; }
+    else if(state.end!==null){ state.end=null; state.endType=null; }
+    redraw();
+  });
+  redraw();
+  fluidTracks.push({row, state, redraw});
+}
+
+document.querySelectorAll('#fluid-mode-selector .legend-btn[data-m]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#fluid-mode-selector .legend-btn[data-m]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    fluidMode = btn.dataset.m;
+  });
+});
+
+buildFluidTrackRow(1, {first:true});
+buildFluidTrackRow(2, {last:true});
+
+function addFluidTrackRow(){
+  const rows = document.querySelectorAll('#grid-fluids .tgrid');
+  if(rows.length) rows[rows.length-1].classList.remove('last');
+  buildFluidTrackRow(rows.length+1, {last:true});
+}
+function sumIVFluids(){
+  const inputs = document.querySelectorAll('#grid-fluids .fluid-vol');
+  let total = 0;
+  inputs.forEach(i=>{ total += parseFloat(i.value)||0; });
+  document.getElementById('fluids-total').textContent = total;
+}
+
+
+// ================= vitals plotted chart =================
+const ROWH = 14, ROWS = 18; // 19 gridlines, 18 intervals: 220 down to 40 step 10
+const plotW = COLS*COLW, plotH = ROWS*ROWH;
+const svg = document.getElementById('vitals-svg');
+svg.setAttribute('viewBox', `0 0 ${plotW} ${plotH}`);
+svg.setAttribute('width', plotW);
+svg.setAttribute('height', plotH);
+svg.style.display='block';
+svg.style.background='#fff';
+svg.style.cursor='crosshair';
+
+// axis labels (220 .. 40 step -10), aligned to the axis column beside the svg
+const axisDiv = document.getElementById('axis-labels');
+axisDiv.style.height = plotH+'px';
+for(let i=0;i<=ROWS;i++){
+  const val = 220 - i*10;
+  const span = document.createElement('span');
+  span.textContent = val;
+  span.style.top = (i*ROWH)+'px';
+  axisDiv.appendChild(span);
+}
+
+// gridlines
+const nsSvg = 'http://www.w3.org/2000/svg';
+for(let i=0;i<=ROWS;i++){
+  const line = document.createElementNS(nsSvg,'line');
+  line.setAttribute('x1',0); line.setAttribute('x2',plotW);
+  line.setAttribute('y1', i*ROWH); line.setAttribute('y2', i*ROWH);
+  line.setAttribute('stroke', i%1===0 ? '#ccc' : '#eee');
+  line.setAttribute('stroke-width', 0.6);
+  line.setAttribute('stroke-dasharray','2,2');
+  svg.appendChild(line);
+}
+for(let c=0;c<=COLS;c++){
+  const line = document.createElementNS(nsSvg,'line');
+  line.setAttribute('x1', c*COLW); line.setAttribute('x2', c*COLW);
+  line.setAttribute('y1', 0); line.setAttribute('y2', plotH);
+  line.setAttribute('stroke', '#e5e5e5');
+  line.setAttribute('stroke-width', 0.6);
+  svg.appendChild(line);
+}
+const plotGroup = document.createElementNS(nsSvg,'g');
+svg.appendChild(plotGroup);
+
+const PARAMS = {
+  SBP:{sym:'∨', color:'#111'},
+  DBP:{sym:'∧', color:'#111'},
+  HR:{sym:'•', color:'#111'},
+  MAP:{sym:'×', color:'#111'}
+};
+const chartData = {SBP:new Array(COLS).fill(null), DBP:new Array(COLS).fill(null), HR:new Array(COLS).fill(null), MAP:new Array(COLS).fill(null)};
+let activeParam = 'SBP';
+
+document.querySelectorAll('.legend-btn[data-p]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.legend-btn[data-p]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    activeParam = btn.dataset.p;
+  });
+});
+function clearActiveParam(){
+  if(!confirm('Clear every plotted '+activeParam+' point on this chart?')) return;
+  chartData[activeParam] = new Array(COLS).fill(null);
+  redrawChart();
+}
+
+function valueToY(v){ return (220 - v) / 10 * ROWH; }
+function yToValue(y){ return Math.round((220 - (y/ROWH)*10)/1); }
+
+function redrawChart(){
+  plotGroup.innerHTML = '';
+  Object.keys(PARAMS).forEach(p=>{
+    const {sym, color} = PARAMS[p];
+    const pts = chartData[p];
+    // connecting line(s), broken at gaps — HR only; SBP/DBP/MAP are shown as standalone points
+    if(p==='HR'){
+      let seg = [];
+      for(let i=0;i<COLS;i++){
+        if(pts[i]!==null){
+          seg.push([i*COLW+COLW/2, valueToY(pts[i])]);
+        } else if(seg.length){
+          drawSeg(seg,color); seg=[];
+        }
+      }
+      if(seg.length) drawSeg(seg,color);
+    }
+    // symbols
+    for(let i=0;i<COLS;i++){
+      if(pts[i]!==null){
+        const t = document.createElementNS(nsSvg,'text');
+        t.setAttribute('x', i*COLW+COLW/2);
+        t.setAttribute('y', valueToY(pts[i]));
+        t.setAttribute('text-anchor','middle');
+        t.setAttribute('dominant-baseline','middle');
+        t.setAttribute('font-size', p==='HR' ? 16 : 13);
+        t.setAttribute('font-weight','700');
+        t.setAttribute('fill', color);
+        t.textContent = sym;
+        plotGroup.appendChild(t);
+      }
+    }
+  });
+}
+function drawSeg(seg,color){
+  const poly = document.createElementNS(nsSvg,'polyline');
+  poly.setAttribute('points', seg.map(p=>p.join(',')).join(' '));
+  poly.setAttribute('fill','none');
+  poly.setAttribute('stroke', color);
+  poly.setAttribute('stroke-width', 1);
+  plotGroup.appendChild(poly);
+}
+
+function svgPoint(evt){
+  const rect = svg.getBoundingClientRect();
+  const x = (evt.clientX-rect.left)/rect.width*plotW;
+  const y = (evt.clientY-rect.top)/rect.height*plotH;
+  return {x,y};
+}
+
+svg.addEventListener('click', (evt)=>{
+  const {x,y} = svgPoint(evt);
+  const col = Math.min(COLS-1, Math.max(0, Math.floor(x/COLW)));
+  const val = Math.min(220, Math.max(40, yToValue(y)));
+  chartData[activeParam][col] = val;
+  redrawChart();
+});
+svg.addEventListener('contextmenu', (evt)=>{
+  evt.preventDefault();
+  const {x} = svgPoint(evt);
+  const col = Math.min(COLS-1, Math.max(0, Math.floor(x/COLW)));
+  chartData[activeParam][col] = null;
+  redrawChart();
+});
+
+// ================= technique-driven show/hide + non-destructive prefill =================
+// Technique buttons are independent toggles (not a radio group) so a failed
+// neuraxial technique converted to GA can show both the regional and general
+// blocks at once — click an active button again to turn it off.
+function setTechnique(t){
+  const btn = document.querySelector('.tbtn[data-t="'+t+'"]');
+  const turningOn = !btn.classList.contains('active');
+  btn.classList.toggle('active', turningOn);
+  updateTechniqueBlocks();
+  if(turningOn){
+    if(t==='spinal'||t==='epidural'||t==='cse') prefillRegional(t);
+    if(t==='general') prefillGeneral();
+    autoSelectMonitoring(t);
+  }
+}
+function updateTechniqueBlocks(){
+  const active = new Set(Array.from(document.querySelectorAll('.tbtn.active')).map(b=>b.dataset.t));
+  const showRegional = active.has('spinal')||active.has('epidural')||active.has('cse');
+  const showGeneral  = active.has('general');
+  const showSedation = active.has('sedation');
+  document.getElementById('regional-block').classList.toggle('show', showRegional);
+  document.getElementById('general-block').classList.toggle('show', showGeneral);
+  document.getElementById('sedation-block').classList.toggle('show', showSedation);
+  document.getElementById('grid-vitals-extra').classList.toggle('show-ga', showGeneral);
+}
+function resetTechnique(){
+  document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('regional-block').classList.remove('show');
+  document.getElementById('general-block').classList.remove('show');
+  document.getElementById('sedation-block').classList.remove('show');
+  document.getElementById('grid-vitals-extra').classList.remove('show-ga');
+}
+// Non-destructive, same philosophy as setIfEmpty() below: only ticks monitors
+// that aren't already ticked, never unticks anything.
+function autoSelectMonitoring(t){
+  ['mon-ecg','mon-oximetry','mon-nibp'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el && !el.checked) el.checked = true;
+  });
+  if(t==='general'){
+    const capno = document.getElementById('mon-capnograph');
+    if(capno && !capno.checked) capno.checked = true;
+  }
+}
+// ================= pre-anaesthesia check: master tick =================
+function togglePreAnaesAll(){
+  const checked = document.getElementById('preanaes-all').checked;
+  ['preanaes-iv','preanaes-suction','preanaes-machine'].forEach(id=>{
+    document.getElementById(id).checked = checked;
+  });
+}
+function quickFill(id, text){
+  const el = document.getElementById(id);
+  if(!el) return;
+  if(!el.value.trim()){ el.value = text; }
+  else if(!el.value.includes(text)){ el.value += '; ' + text; }
+}
+function setIfEmpty(el, value){
+  if(!el) return;
+  if(el.type==='checkbox' || el.type==='radio'){ if(!el.checked) el.checked = true; }
+  else { if(!el.value) el.value = value; }
+}
+function prefillRegional(t){
+  setIfEmpty(document.getElementById('r-interspace'), 'L3/4');
+  setIfEmpty(document.getElementById('r-attempts'), '1');
+  setIfEmpty(document.getElementById('r-pos-sitting'));
+  if(t==='spinal' || t==='cse'){
+    setIfEmpty(document.getElementById('r-spinal-atraumatic'));
+    setIfEmpty(document.getElementById('r-spinal-gauge'), '25G');
+  }
+  if(t==='epidural' || t==='cse'){
+    setIfEmpty(document.getElementById('r-epi-tuohy'));
+    setIfEmpty(document.getElementById('r-epi-gauge'), '18G');
+    setIfEmpty(document.getElementById('r-lor-saline'));
+  }
+}
+function prefillGeneral(){
+  setIfEmpty(document.getElementById('g-preox'));
+  setIfEmpty(document.getElementById('g-cricoid'));
+  setIfEmpty(document.getElementById('g-rsi'));
+  setIfEmpty(document.getElementById('g-ett-size'), '7.0');
+  setIfEmpty(document.getElementById('g-vent-controlled'));
+  setIfEmpty(document.getElementById('g-o2air'));
+}
+// ================= I-D / U-D auto-calc =================
+function calcTimes(){
+  const i = document.getElementById('t-induction').value;
+  const s = document.getElementById('t-skin').value;
+  const u = document.getElementById('t-incision').value;
+  const d = document.getElementById('t-delivery').value;
+  const toMin = (t)=>{ if(!t) return null; const [h,m]=t.split(':').map(Number); return h*60+m; };
+  const im=toMin(i), sm=toMin(s), um=toMin(u), dm=toMin(d);
+  document.getElementById('out-is').textContent = (im!==null&&sm!==null) ? Math.max(sm-im,0) : '—';
+  document.getElementById('out-id').textContent = (im!==null&&dm!==null) ? Math.max(dm-im,0) : '—';
+  document.getElementById('out-ud').textContent = (um!==null&&dm!==null) ? Math.max((dm-um)*60,0) : '—';
+}
+
+// ================= checklists -> free-text fields =================
+// Rebuilds by removing exactly what this checkbox last inserted (as one literal
+// substring, including its own separator) and re-appending if still checked —
+// safe for phrases that span multiple lines, unlike a naive split('\n') compare.
+function wireChecklist(containerId, targetId){
+  const container = document.getElementById(containerId);
+  const box = document.getElementById(targetId);
+  const lastInserted = new WeakMap();
+  container.addEventListener('change', (e)=>{
+    if(e.target.type!=='checkbox') return;
+    const cb = e.target;
+    const phrase = cb.dataset.phrase;
+    let value = box.value;
+    const prev = lastInserted.get(cb);
+    if(prev && value.includes(prev)){ value = value.replace(prev, ''); }
+    value = value.replace(/\n{2,}$/,'\n').replace(/^\n+/,'');
+    let inserted = '';
+    if(cb.checked){
+      inserted = (value && !value.endsWith('\n') ? '\n' : '') + phrase;
+      value = value + inserted;
+    }
+    lastInserted.set(cb, inserted);
+    box.value = value;
+  });
+}
+wireChecklist('comp-list', 'remarks');
+
+// checklists whose ticked items all collapse onto one shared line (comma-separated),
+// rebuilt from current checkbox state each time rather than re-parsed from the text,
+// so tag text containing spaces (e.g. "Prev C/S x1") never breaks detection.
+const sameLineState = {};
+function wireSameLineChecklist(containerId, targetId, prefix){
+  const container = document.getElementById(containerId);
+  const box = document.getElementById(targetId);
+  function rebuild(){
+    const tags = Array.from(container.querySelectorAll('input[type=checkbox]:checked'))
+                       .map(cb => prefix + cb.dataset.tag);
+    const newLine = tags.join(', ');
+    let lines = box.value.split('\n');
+    const prevLine = sameLineState[targetId];
+    const idx = (prevLine!=null) ? lines.indexOf(prevLine) : -1;
+    if(idx>=0){
+      if(newLine) lines[idx] = newLine;
+      else lines.splice(idx,1);
+    } else if(newLine){
+      const ageIdx = lines.findIndex(l=>/^\d+yo Female\.$/.test(l.trim()));
+      if(ageIdx>=0) lines.splice(ageIdx+1,0,newLine);
+      else lines.unshift(newLine);
+    }
+    sameLineState[targetId] = newLine || null;
+    box.value = lines.join('\n');
+  }
+  container.addEventListener('change', (e)=>{ if(e.target.type==='checkbox') rebuild(); });
+}
+wireSameLineChecklist('history-checks', 'history-text', '#');
+wireSameLineChecklist('prev-anaes-checks', 'prev-anaes-text', '');
+
+// "Other" proposed operation
+function toggleOpOther(){
+  document.getElementById('op-other').classList.toggle('show', document.getElementById('op-select').value==='Other');
+}
+
+// ================= DOB -> age line at top of History =================
+function updateAge(){
+  const dob = document.getElementById('dob-field').value;
+  const parts = dob.split('/');
+  if(parts.length!==3) return;
+  const dd=parseInt(parts[0],10), mm=parseInt(parts[1],10), yyyy=parseInt(parts[2],10);
+  if(!dd||!mm||!yyyy) return;
+  const birth = new Date(yyyy, mm-1, dd);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const md = today.getMonth() - birth.getMonth();
+  if(md<0 || (md===0 && today.getDate()<birth.getDate())) age--;
+  const box = document.getElementById('history-text');
+  let lines = box.value.split('\n');
+  const ageLine = age + 'yo Female.';
+  if(lines.length && /^\d+yo Female\.$/.test(lines[0])){ lines[0] = ageLine; }
+  else { lines.unshift(ageLine); }
+  box.value = lines.join('\n');
+}
+
+// ================= recovery room add-row =================
+function addRecoveryRow(){
+  const table = document.getElementById('recovery-table');
+  const row = table.insertRow(-1);
+  let cells = '';
+  for(let c=0;c<10;c++){ cells += '<td><input type="text" class="sm"></td>'; }
+  row.innerHTML = cells;
+}
+function toggleRecoveryTable(){
+  document.getElementById('recovery-table-wrap').classList.toggle('show', document.getElementById('recovery-toggle').checked);
+}
+
+// ================= reset =================
+function resetForm(){
+  if(!confirm('Clear every field on this form? This cannot be undone.')) return;
+  document.getElementById('record').reset();
+  document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('regional-block').classList.remove('show');
+  document.getElementById('general-block').classList.remove('show');
+  document.getElementById('sedation-block').classList.remove('show');
+  document.getElementById('op-other').classList.remove('show');
+  document.getElementById('grid-vitals-extra').classList.remove('show-ga');
+  document.getElementById('recovery-table-wrap').classList.remove('show');
+  document.getElementById('out-is').textContent = '—';
+  document.getElementById('out-id').textContent = '—';
+  document.getElementById('out-ud').textContent = '—';
+  document.getElementById('fluids-total').textContent = '0';
+  document.getElementById('grid-fluids').innerHTML = '';
+  fluidTracks.length = 0;
+  buildFluidTrackRow(1, {first:true});
+  buildFluidTrackRow(2, {last:true});
+  initDrugRows();
+  rebuildTimeline();
+  Object.keys(chartData).forEach(p=> chartData[p] = new Array(COLS).fill(null));
+  redrawChart();
+}
+
+redrawChart();
+</script>
+</body>
+</html>
