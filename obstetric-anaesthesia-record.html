@@ -79,7 +79,7 @@
   .totals-line{font-size:11px;margin-top:3px;text-align:right;}
   .totals-line output{font-weight:700;}
 
-  /* shared time-column grid rows (page 2: time header, drugs, IV fluids, agent%, vitals sub-rows) */
+  /* shared time-column grid rows (page 2: time header, drugs, IV fluids, EtAA, vitals sub-rows) */
   .tgrid{display:flex;border-top:1px solid #999;position:relative;}
   .tgrid.first{border-top:1px solid var(--line);}
   .tgrid.last{border-bottom:1px solid var(--line);}
@@ -129,7 +129,7 @@
 <div class="toolbar">
   <h1>Obstetric Anaesthetic Record — editable, printable template</h1>
   <button onclick="window.print()">Print</button>
-  <button onclick="applySimpleCase()" title="Fills in the common defaults for a straightforward primary/elective spinal C/S">Simple Case</button>
+  <button onclick="applySimpleCase()" title="Fills in the common defaults for a straightforward primary/elective spinal C/S">Simple CS</button>
   <button class="secondary" onclick="resetForm()">Reset for next patient</button>
   <p>Nothing here is saved or sent anywhere — it lives only in this open tab. Reset before reusing for another patient. Prefilled defaults on selecting a technique are common-practice starting points, not instructions — verify and edit for the actual case.</p>
 </div>
@@ -222,8 +222,8 @@
     <textarea id="prev-anaes-text" rows="1" class="xl"></textarea>
   </div>
   <div class="box">
-    <div class="box-title">Medication:</div><textarea rows="1" class="xl"></textarea>
-    <div class="field" style="margin-top:4px;"><label class="box-title">Allergies:</label><input type="text" id="allergies-field" class="lg"> <span class="chk"><input type="checkbox" id="allergy-nil" onchange="toggleAllergyNil(this)"> Nil</span></div>
+    <div class="box-title">Medication: <span class="chk no-print"><input type="checkbox" id="med-allergy-nil" onchange="toggleAllergyNil(this)"> Nil</span></div><textarea id="medication-field" rows="1" class="xl"></textarea>
+    <div class="field" style="margin-top:4px;"><label class="box-title">Allergies:</label><input type="text" id="allergies-field" class="lg"></div>
   </div>
 
   <div class="box">
@@ -235,8 +235,8 @@
       <div class="field"><label>Pulse</label><input type="number" class="sm"></div>
       <div class="field"><label>O₂ Sats (%)</label><input type="number" class="sm"></div>
     </div>
-    <div class="field"><label>CVS:</label><input type="text" id="cvs-field" class="lg"><button type="button" class="quickfill" onclick="quickFill('cvs-field','S1, S2, No murmurs, No failure')">Normal</button></div>
-    <div class="field"><label>Resp:</label><input type="text" id="resp-field" class="lg"><button type="button" class="quickfill" onclick="quickFill('resp-field','AEB, Clear, No distress')">Normal</button></div>
+    <div class="field"><label>CVS:</label><input type="text" id="cvs-field" class="lg"><button type="button" class="quickfill no-print" onclick="quickFill('cvs-field','S1, S2, No murmurs, No failure')">Normal</button></div>
+    <div class="field"><label>Resp:</label><input type="text" id="resp-field" class="lg"><button type="button" class="quickfill no-print" onclick="quickFill('resp-field','AEB, Clear, No distress')">Normal</button></div>
     <div class="field"><label>Notes:</label><textarea rows="1" class="additional"></textarea></div>
   </div>
 
@@ -307,7 +307,7 @@
       <button type="button" class="tbtn" data-t="sedation" onclick="setTechnique('sedation')">Sedation</button>
       <button type="button" class="tbtn" style="border-style:dashed;" onclick="resetTechnique()">Clear technique</button>
     </div>
-    <div class="hint">Techniques are independent toggles — click again to turn one off. Select a neuraxial technique together with General for a failed block converted to GA. Selecting a technique pre-fills common defaults into empty fields only, and ticks ECG/Oximetry/NIBP (plus Capnograph for General) under Monitoring.</div>
+    <div class="hint no-print">Techniques are independent toggles — click again to turn one off. Select a neuraxial technique together with General for a failed block converted to GA. Selecting a technique pre-fills common defaults into empty fields only, and ticks ECG/Oximetry/NIBP (plus Capnograph for General) under Monitoring.</div>
 
     <div id="regional-block" class="conditional">
       <div class="subgrid">
@@ -429,6 +429,8 @@
       <option value="Perfalgan">
       <option value="Dexamethasone">
       <option value="Morphine">
+      <option value="Fentanyl">
+      <option value="Alfentanil">
       <option value="Indomethacin">
       <option value="TXA">
       <option value="CaCl">
@@ -437,6 +439,10 @@
       <option value="Syntometrine">
       <option value="PEP (ml/hour)">
       <option value="PEP (Bolus)">
+      <option value="Propofol (Cet)">
+      <option value="Propofol">
+      <option value="Rocuronium">
+      <option value="Suxamethonium">
     </datalist>
     <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;padding:4px 6px 2px;">
       <div class="box-title" style="margin:0;">
@@ -464,7 +470,8 @@
     <div class="row" style="padding:3px 6px;justify-content:right;">
       <div class="totals-line" style="margin:0;">Total: <output id="fluids-total">0</output> mL</div>
     </div>
-    <div class="chartrow">
+    <div id="grid-time-2"></div>
+    <div class="chartrow" style="padding-top: 5px;">
       <div class="monlist">
         <div class="section-label">Monitoring</div>
         <label class="chk"><input type="checkbox" id="mon-ecg">ECG</label>
@@ -474,10 +481,10 @@
         <label class="chk"><input type="checkbox" id="mon-temp">Temp</label>
         <label class="chk"><input type="checkbox" id="mon-arterial">Arterial line</label>
         <div class="section-label" style="margin-top:6px;">Position</div>
-        <label class="chk"><input type="checkbox">Supine</label>
-        <label class="chk"><input type="checkbox">Tilt/Wedge</label>
+        <label class="chk"><input type="checkbox" id="pos-supine">Supine</label>
+        <label class="chk"><input type="checkbox" id="pos-tiltwedge">Tilt/Wedge</label>
         <label class="chk"><input type="checkbox">Lithotomy</label>
-        <div class="legend-row" id="chart-mode-selector" style="padding-top: 10px;">
+        <div class="legend-row no-print" id="chart-mode-selector">
           <span class="mode-label" title="Manual: click a column to plot the active parameter. Drag: press and drag across the chart to trace it continuously. Auto-cycle: each click plots, then auto-advances SBP → MAP → DBP → HR.">Charting mode:</span>
           <button type="button" class="legend-btn active" data-mode="manual">Manual click</button>
           <button type="button" class="legend-btn" data-mode="drag">Drag to chart</button>
@@ -504,8 +511,28 @@
   </div>
 
   <div class="box two-col">
-    <div class="field"><label>Blood loss (mL):</label><input type="number" class="sm"></div>
+    <div class="field"><label>Blood loss (mL):</label><input type="number" id="blood-loss-field" class="sm"></div>
     <div class="field"><label>Urine output (mL):</label><input type="number" class="sm"></div>
+  </div>
+
+  <div class="box no-print">
+    <div class="box-title">Blood loss calculator <span style="font-weight:400;color:var(--muted);font-size:9.5px;">— (Swab weight − swabs×40) × Blood % + Suction + Bed. Screen only, does not print.</span></div>
+    <div class="row">
+      <div class="field"><label>Weight of swabs (g):</label><input type="number" id="bl-swab-weight" class="sm" oninput="calcBloodLoss()"></div>
+      <div class="field"><label>No. of abdo swabs:</label><input type="number" id="bl-swab-count" class="sm" oninput="calcBloodLoss()"></div>
+      <div class="field"><label>Blood % (70–100):</label><input type="number" id="bl-blood-pct" class="sm" min="70" max="100" oninput="calcBloodLoss()"></div>
+      <div class="field"><label>Suction (mL):</label><input type="number" id="bl-suction" class="sm" oninput="calcBloodLoss()"></div>
+      <div class="field"><label>Bed (mL):</label><input type="number" id="bl-bed" class="sm" oninput="calcBloodLoss()"></div>
+    </div>
+    <div class="calc-box">
+      <span>Estimated blood loss: <output id="bl-result">—</output> mL</span>
+      <button type="button" class="addrow-btn" onclick="copyBloodLoss()">Copy to Blood loss</button>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="box-title">General comments</div>
+    <textarea rows="2" class="xl" id="general-comments"></textarea>
   </div>
 
   <div class="box">
@@ -581,7 +608,22 @@ function buildRow(containerId, label, opts={}){
   row.className = 'tgrid' + (opts.first?' first':'') + (opts.last?' last':'') + (opts.header?' header':'') + (opts.gaOnly?' ga-only':'');
   const lbl = document.createElement('div');
   lbl.className = 'lbl';
-  if(opts.labelInput){
+  if(opts.agentSelect){
+    lbl.style.flexWrap = 'wrap';
+    const span = document.createElement('span');
+    span.textContent = label + ' ';
+    lbl.appendChild(span);
+    const sel = document.createElement('select');
+    sel.id = opts.agentSelectId || 'etaa-agent';
+    sel.style.fontSize = '9px';
+    sel.style.maxWidth = '48px';
+    ['Sevo','Iso'].forEach(name=>{
+      const o = document.createElement('option');
+      o.value = name; o.textContent = name;
+      sel.appendChild(o);
+    });
+    lbl.appendChild(sel);
+  } else if(opts.labelInput){
     const inp = document.createElement('input');
     inp.type='text'; inp.placeholder=label;
     lbl.appendChild(inp);
@@ -609,13 +651,16 @@ function buildRow(containerId, label, opts={}){
 
 // Time header: wide cells every 30 min (6 x 5-min columns), pre-filled (and
 // still editable) with the computed clock time, starting at the 15-min mark
-// at/before the Spinal/Induction time.
+// at/before the Spinal/Induction time. Built twice — once above Drugs, once
+// again directly above the Vitals chart — so the times are visible without
+// scrolling back up while charting vitals.
 const HEADER_GROUP = 6;
-function buildTimeHeader(){
-  const container = document.getElementById('grid-time');
+function buildTimeHeader(containerId, rowClass){
+  const container = document.getElementById(containerId);
+  if(!container) return;
   container.innerHTML = '';
   const row = document.createElement('div');
-  row.className = 'tgrid first header';
+  row.className = 'tgrid ' + rowClass;
   const lbl = document.createElement('div');
   lbl.className = 'lbl';
   lbl.textContent = 'Time:';
@@ -637,7 +682,8 @@ function buildTimeHeader(){
   container.appendChild(row);
 }
 function rebuildTimeline(){
-  buildTimeHeader();
+  buildTimeHeader('grid-time', 'first header');
+  buildTimeHeader('grid-time-2', 'first last header');
 }
 
 // ================= Drugs: click a line, type the dose (like fluids, but points not intervals) =================
@@ -799,12 +845,12 @@ function addDrugTrackRow(){
   buildDrugTrackRow('Drug', {last:true});
 }
 
-buildTimeHeader();
+rebuildTimeline();
 initDrugRows();
 buildRow('grid-vitals-extra', 'FiO₂', {first:true, group:3});
 buildRow('grid-vitals-extra', 'Sat %', {group:3});
 buildRow('grid-vitals-extra', 'EtCO₂', {gaOnly:true, group:3});
-buildRow('grid-vitals-extra', 'Agent Inspired %', {gaOnly:true, group:3});
+buildRow('grid-vitals-extra', 'EtAA', {gaOnly:true, group:3, agentSelect:true});
 buildRow('grid-vitals-extra', 'P(AW)', {gaOnly:true, last:true, group:3});
 
 // ================= IV fluids: Start/Finish timeline (like SBP/DBP) =================
@@ -893,8 +939,8 @@ function buildFluidTrackRow(n, opts={}){
     const midY = FL_H/2;
     if(state.start!==null && state.end!==null){
       const line = document.createElementNS(svgNS,'line');
-      line.setAttribute('x1',(state.start+0.5)*COLW);
-      line.setAttribute('x2',(state.end+0.5)*COLW);
+      line.setAttribute('x1',state.start*COLW);
+      line.setAttribute('x2',state.end*COLW);
       line.setAttribute('y1',midY); line.setAttribute('y2',midY);
       line.setAttribute('stroke','#333'); line.setAttribute('stroke-width',1.5);
       if(state.endType==='ongoing') line.setAttribute('stroke-dasharray','3,2');
@@ -902,7 +948,7 @@ function buildFluidTrackRow(n, opts={}){
     }
     if(state.start!==null){
       const t = document.createElementNS(svgNS,'text');
-      t.setAttribute('x',(state.start+0.5)*COLW); t.setAttribute('y',midY);
+      t.setAttribute('x',state.start*COLW); t.setAttribute('y',midY);
       t.setAttribute('text-anchor','middle'); t.setAttribute('dominant-baseline','middle');
       t.setAttribute('font-size','14'); t.setAttribute('font-weight','700');
       t.setAttribute('fill','#1d5fd6'); t.textContent = '○';
@@ -910,7 +956,7 @@ function buildFluidTrackRow(n, opts={}){
     }
     if(state.end!==null){
       const t = document.createElementNS(svgNS,'text');
-      t.setAttribute('x',(state.end+0.5)*COLW); t.setAttribute('y',midY);
+      t.setAttribute('x',state.end*COLW); t.setAttribute('y',midY);
       t.setAttribute('text-anchor','middle'); t.setAttribute('dominant-baseline','middle');
       t.setAttribute('font-size','14'); t.setAttribute('font-weight','700');
       if(state.endType==='ongoing'){ t.setAttribute('fill','#b3720a'); t.textContent = '>'; }
@@ -999,8 +1045,9 @@ for(let c=0;c<=COLS;c++){
   const line = document.createElementNS(nsSvg,'line');
   line.setAttribute('x1', c*COLW); line.setAttribute('x2', c*COLW);
   line.setAttribute('y1', 0); line.setAttribute('y2', plotH);
-  line.setAttribute('stroke', '#e5e5e5');
-  line.setAttribute('stroke-width', 0.6);
+  const isQ15 = c%3===0;
+  line.setAttribute('stroke', isQ15 ? '#aaa' : '#e5e5e5');
+  line.setAttribute('stroke-width', isQ15 ? 0.8 : 0.6);
   svg.appendChild(line);
 }
 const plotGroup = document.createElementNS(nsSvg,'g');
@@ -1058,7 +1105,7 @@ function redrawChart(){
       let seg = [];
       for(let i=0;i<COLS;i++){
         if(pts[i]!==null){
-          seg.push([i*COLW+COLW/2, valueToY(pts[i])]);
+          seg.push([i*COLW, valueToY(pts[i])]);
         } else if(seg.length){
           drawSeg(seg,color); seg=[];
         }
@@ -1069,7 +1116,7 @@ function redrawChart(){
     for(let i=0;i<COLS;i++){
       if(pts[i]!==null){
         const t = document.createElementNS(nsSvg,'text');
-        t.setAttribute('x', i*COLW+COLW/2);
+        t.setAttribute('x', i*COLW);
         t.setAttribute('y', valueToY(pts[i]));
         t.setAttribute('text-anchor','middle');
         t.setAttribute('dominant-baseline','middle');
@@ -1218,14 +1265,17 @@ function quickFill(id, text){
   if(!el.value.trim()){ el.value = text; }
   else if(!el.value.includes(text)){ el.value += '; ' + text; }
 }
-// Ticking adds "Nil" (via quickFill, so it won't clobber anything already
-// typed there); unticking only clears it back out if the field still reads
-// exactly "Nil" — if the user has since typed something else, that's left alone.
+// Ticking adds "Nil" to both Medication and Allergies (via quickFill, so it
+// won't clobber anything already typed there); unticking only clears a field
+// back out if it still reads exactly "Nil" — if the user has since typed
+// something else, that's left alone.
 function toggleAllergyNil(cb){
-  const field = document.getElementById('allergies-field');
-  if(!field) return;
-  if(cb.checked){ quickFill('allergies-field', 'Nil'); }
-  else if(field.value.trim()==='Nil'){ field.value = ''; }
+  ['medication-field','allergies-field'].forEach(id=>{
+    const field = document.getElementById(id);
+    if(!field) return;
+    if(cb.checked){ quickFill(id, 'Nil'); }
+    else if(field.value.trim()==='Nil'){ field.value = ''; }
+  });
 }
 function setIfEmpty(el, value){
   if(!el) return;
@@ -1265,6 +1315,26 @@ function calcTimes(){
   document.getElementById('out-is').textContent = (im!==null&&sm!==null) ? Math.max(sm-im,0) : '—';
   document.getElementById('out-id').textContent = (im!==null&&dm!==null) ? Math.max(dm-im,0) : '—';
   document.getElementById('out-ud').textContent = (um!==null&&dm!==null) ? Math.max((dm-um)*60,0) : '—';
+}
+
+// ================= Blood loss calculator (screen-only helper) =================
+// (Swab weight − swabs×40) × Blood% + Suction + Bed. Blank fields count as 0
+// so the total fills in progressively as fields are entered.
+function calcBloodLoss(){
+  const num = (id)=>{ const v = parseFloat(document.getElementById(id).value); return isNaN(v) ? 0 : v; };
+  const swabWeight = num('bl-swab-weight');
+  const swabCount = num('bl-swab-count');
+  const bloodPct = num('bl-blood-pct');
+  const suction = num('bl-suction');
+  const bed = num('bl-bed');
+  const netSwabWeight = Math.max(0, swabWeight - swabCount*40);
+  const total = netSwabWeight * (bloodPct/100) + suction + bed;
+  document.getElementById('bl-result').textContent = Math.round(total);
+}
+function copyBloodLoss(){
+  const result = document.getElementById('bl-result').textContent;
+  if(result==='—') return;
+  document.getElementById('blood-loss-field').value = result;
 }
 
 // ================= checklists -> free-text fields =================
@@ -1345,7 +1415,7 @@ function toggleOpOther(){
   document.getElementById('op-other').classList.toggle('show', document.getElementById('op-select').value==='Other');
 }
 
-// ================= Simple Case quick-fill =================
+// ================= Simple CS quick-fill =================
 // Ticks/sets a checkbox that's wired to a free-text checklist (NBB, Standard
 // spinal) via a bubbling change event, so the same delegated listeners that
 // handle a manual click also fire here.
@@ -1368,7 +1438,7 @@ function applySimpleCase(){
   quickFill('cvs-field', 'S1, S2, No murmurs, No failure');
   quickFill('resp-field', 'AEB, Clear, No distress');
 
-  ['mallampati-1','teeth-no','airway-332','airway-from','airway-fon','asa-2'].forEach(id=>{
+  ['mallampati-1','teeth-no','airway-332','airway-from','airway-fon','asa-2','pos-supine','pos-tiltwedge'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.checked = true;
   });
@@ -1432,6 +1502,7 @@ function resetForm(){
   document.getElementById('out-is').textContent = '—';
   document.getElementById('out-id').textContent = '—';
   document.getElementById('out-ud').textContent = '—';
+  document.getElementById('bl-result').textContent = '—';
   document.getElementById('fluids-total').textContent = '0';
   document.getElementById('grid-fluids').innerHTML = '';
   fluidTracks.length = 0;
