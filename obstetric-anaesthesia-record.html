@@ -71,6 +71,9 @@
   .conditional{display:none;} .conditional.show{display:block;}
   .subgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px;}
   .comp-list{display:flex;flex-wrap:wrap;gap:2px 12px;margin-bottom:5px;}
+  .hxrow{display:flex;align-items:flex-start;gap:4px;}
+  .hxrow-label{font-size:10px;color:var(--muted);flex:0 0 28px;line-height:16px;padding-top:1px;}
+  .hxrow .comp-list{margin-bottom:0;}
   .calc-box{background:var(--accent-bg);border:1px solid var(--accent);padding:5px 7px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:11px;margin-top:5px;}
   .calc-box output{font-weight:700;color:var(--accent);}
   .addrow-btn{font-size:10.5px;padding:3px 9px;margin-top:4px;border:1px dashed var(--accent);background:#fff;color:var(--accent);border-radius:3px;cursor:pointer;}
@@ -154,9 +157,10 @@
           <option value=""></option>
           <option>C/S</option>
           <option>C/S + BTL</option>
-          <option>PPS</option>
+          <option>Post Partum Sterilisation</option>
           <option>Evacuation of Uterus</option>
           <option>Perineal Tear Repair</option>
+          <option>EUA</option>
           <option>Other</option>
         </select>
         <input type="text" id="op-other" class="md conditional" placeholder="Specify">
@@ -167,12 +171,20 @@
           <option value=""></option>
           <option>COSMO</option>
           <option>MO</option>
-          <option>Reg</option>
+          <option>Registrar</option>
           <option>FCOG</option>
+          <option>FCFP</option>
         </select>
       </div>
-      <div class="field"><label>Consent obtained:</label><span class="chk"><input type="checkbox" id="consent-obtained"></span></div>
-      <div class="field"><label>Nil by mouth since (time):</label><input type="time"></div>
+      <div class="field"><label>Consent obtained and confirmed:</label><span class="chk"><input type="checkbox" id="consent-obtained"></span></div>
+      <div class="field"><label>NPO since (time):</label><input type="time">
+        <select class="md" id="npo-status" style="margin-left:3px;">
+          <option value=""></option>
+          <option>Heavy Meal</option>
+          <option>Light Meal</option>
+          <option>Clear Fluids</option>
+        </select>
+      </div>
     </div>
     <div>
       <div class="box-title">Details of anaesthetist</div>
@@ -183,32 +195,49 @@
         <span class="chk"><input type="checkbox" name="anaes-grade">GP/MO &lt; 2 yrs</span>
         <span class="chk"><input type="checkbox" name="anaes-grade">GP/MO ≥ 2 yrs</span>
         <span class="chk"><input type="checkbox" name="anaes-grade">Registrar</span>
-        <span class="chk"><input type="checkbox" name="anaes-grade">Specialist</span>
+        <span class="chk"><input type="checkbox" name="anaes-grade">Specialist
+          <select class="sm" id="specialist-qual" style="margin-left:3px;">
+            <option value=""></option>
+            <option>FCA</option>
+            <option>FCFP</option>
+            <option>FCEM</option>
+            <option>Other</option>
+          </select>
+        </span>
       </div>
     </div>
   </div>
 
   <div class="box">
     <div class="box-title" style="margin-bottom:3px;">History:</div>
-    <div class="comp-list no-print" id="history-checks">
-      <span style="font-size:10px;color:var(--muted);margin-right:2px;">Hx:</span>
-      <span class="chk"><input type="checkbox" data-tag="NBB"> NBB</span>
-      <span class="chk"><input type="checkbox" data-tag="RVD"> RVD</span>
-      <span class="chk"><input type="checkbox" data-tag="HPT"> HPT</span>
-      <span class="chk"><input type="checkbox" data-tag="T2DM"> T2DM</span>
-      <span class="chk"><input type="checkbox" data-tag="Prev C/S"> Prev C/S</span>
-      <span class="chk"><input type="checkbox" data-tag="EOPET"> EOPET</span>
-      <span class="chk"><input type="checkbox" data-tag="LOPET"> LOPET</span>
-      <span class="chk"><input type="checkbox" data-tag="↑BMI"> ↑BMI</span>
-      <span class="chk"><input type="checkbox" data-tag="Anaemia"> Anaemia</span>
+    <div class="hxrow">
+      <span class="hxrow-label">Hx:</span>
+      <div class="comp-list no-print" id="history-checks">
+        <span class="chk"><input type="checkbox" data-tag="NBB"> Normal Booking Bloods</span>
+        <span class="chk"><input type="checkbox" data-tag="RVD"> RVD</span>
+        <span class="chk"><input type="checkbox" data-tag="CHPT"> Chronic HPT</span>
+        <span class="chk"><input type="checkbox" data-tag="PIH"> PIH</span>
+        <span class="chk"><input type="checkbox" data-tag="EOPET"> EOPET</span>
+        <span class="chk"><input type="checkbox" data-tag="LOPET"> LOPET</span>
+        <span class="chk"><input type="checkbox" data-tag="T2DM"> T2DM</span>
+        <span class="chk"><input type="checkbox" data-tag="Prev C/S"> Prev C/S</span>
+        <span class="chk"><input type="checkbox" data-tag="↑BMI"> ↑BMI</span>
+        <span class="chk"><input type="checkbox" data-tag="Anaemia"> Anaemia</span>
+      </div>
     </div>
-    <div class="comp-list no-print" id="now-checks" style="margin-top:2px;">
-      <span style="font-size:10px;color:var(--muted);margin-right:2px;">Now:</span>
-      <span class="chk"><input type="checkbox" data-tag="Elective Repeat/DVBAC"> Elective Repeat/DVBAC</span>
-      <span class="chk"><input type="checkbox" data-tag="NRCTG"> NRCTG</span>
-      <span class="chk"><input type="checkbox" data-tag="Path CTG"> Path CTG</span>
-      <span class="chk"><input type="checkbox" data-tag="FTP"> FTP</span>
-      <span class="chk"><input type="checkbox" data-tag="APH"> APH</span>
+    <div class="hxrow" style="margin-top:2px;">
+      <span class="hxrow-label">Now:</span>
+      <div class="comp-list no-print" id="now-checks">
+        <span class="chk"><input type="checkbox" data-tag="Elective Repeat/DVBAC"> Elective Repeat C/S/DVBAC</span>
+        <span class="chk"><input type="checkbox" data-tag="NRCTG"> Non-Reassuring CTG</span>
+        <span class="chk"><input type="checkbox" data-tag="Path CTG"> Pathological CTG</span>
+        <span class="chk"><input type="checkbox" data-tag="FTP"> Failure to Progress</span>
+        <span class="chk"><input type="checkbox" data-tag="Failed IOL"> Failed Induction of Labour</span>
+        <span class="chk"><input type="checkbox" data-tag="Eclampsia"> Eclampsia</span>
+        <span class="chk"><input type="checkbox" data-tag="Breech"> Breech</span>
+        <span class="chk"><input type="checkbox" data-tag="Multi-pregnancy"> Multi-Pregnancy</span>
+        <span class="chk"><input type="checkbox" data-tag="APH"> APH</span>
+      </div>
     </div>
     <textarea id="history-text" rows="3" class="xl"></textarea>
   </div>
@@ -288,6 +317,9 @@
       <div class="box-title">Premedication:</div>
       <span class="chk"><input type="checkbox" id="premed-citrate">0.3M Sodium Citrate 30 mL per os</span>
       <div class="field"><label>Time:</label><input type="time"></div>
+      <span class="chk"><input type="checkbox" id="premed-maxalon">Metoclopramide 10 mg IV</span>
+      <div class="field"><label>Time:</label><input type="time"></div>
+
     </div>
     <div>
       <div class="box-title">Pre-anaesthesia check:<input type="checkbox" id="preanaes-all" onchange="togglePreAnaesAll()" title="Tick/untick all three" style="margin-left:5px;"></div>
@@ -387,7 +419,7 @@
   <div class="box" style="min-height:26mm;">
     <div class="box-title">Remarks and complications</div>
     <div class="comp-list" id="comp-list">
-      <span class="chk"><input type="checkbox" id="comp-standard-spinal" data-phrase="Aseptic H132 of 2018; 50 mg Lignocaine to skin&#10;Clear CSF; Slow Injection; Successful test&#10;Intrathecal: 2.0 ml 0.5% Bupivacaine + Dextrose AND 0.2 ml 100:2 Fentanyl"> Standard spinal</span>
+      <span class="chk"><input type="checkbox" id="comp-standard-spinal" data-phrase="Aseptic H132 of 2018; 50 mg Lignocaine to skin&#10;Clear CSF; Slow Injection; No Paraesthesia; Successful test&#10;Intrathecal: 2.0 ml 0.5% Bupivacaine + Dextrose AND 0.2 ml 100 mcg/2ml Fentanyl"> Standard spinal</span>
       <span class="chk"><input type="checkbox" data-phrase="Block inadequate, converted to general anaesthesia."> Failed/inadequate block</span>
       <span class="chk"><input type="checkbox" data-phrase="Nausea/vomiting treated."> Nausea/vomiting</span>
     </div>
