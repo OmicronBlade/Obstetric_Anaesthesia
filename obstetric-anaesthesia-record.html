@@ -1184,6 +1184,10 @@ function drawSeg(seg,color){
   plotGroup.appendChild(poly);
 }
 
+// Vitals symbols are drawn ON the vertical gridlines (x = col*COLW), so the
+// hitbox for a column must straddle its line: round to the nearest line
+// instead of flooring to the box on its right.
+function chartCol(x){ return Math.min(COLS-1, Math.max(0, Math.round(x/COLW))); }
 function svgPoint(evt){
   const rect = svg.getBoundingClientRect();
   const x = (evt.clientX-rect.left)/rect.width*plotW;
@@ -1194,7 +1198,7 @@ function svgPoint(evt){
 svg.addEventListener('click', (evt)=>{
   if(chartMode==='drag') return; // drag mode plots via pointerdown/pointermove instead
   const {x,y} = svgPoint(evt);
-  const col = Math.min(COLS-1, Math.max(0, Math.floor(x/COLW)));
+  const col = chartCol(x);
   const val = Math.min(220, Math.max(40, yToValue(y)));
   chartData[activeParam][col] = val;
   redrawChart();
@@ -1203,7 +1207,7 @@ svg.addEventListener('click', (evt)=>{
 svg.addEventListener('contextmenu', (evt)=>{
   evt.preventDefault();
   const {x} = svgPoint(evt);
-  const col = Math.min(COLS-1, Math.max(0, Math.floor(x/COLW)));
+  const col = chartCol(x);
   chartData[activeParam][col] = null;
   redrawChart();
 });
@@ -1214,7 +1218,7 @@ svg.addEventListener('contextmenu', (evt)=>{
 let isDragging = false, dragLastCol = null;
 function plotAtEvt(evt){
   const {x,y} = svgPoint(evt);
-  const col = Math.min(COLS-1, Math.max(0, Math.floor(x/COLW)));
+  const col = chartCol(x);
   const val = Math.min(220, Math.max(40, yToValue(y)));
   return {col, val};
 }
