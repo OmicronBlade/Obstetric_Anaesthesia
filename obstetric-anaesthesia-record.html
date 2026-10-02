@@ -794,6 +794,7 @@ function buildDrugTrackRow(placeholder, opts={}){
   svg.setAttribute('viewBox', `0 0 ${COLS*COLW} ${DRUG_H}`);
   svg.setAttribute('width', COLS*COLW);
   svg.setAttribute('height', DRUG_H);
+  svg.style.overflow = 'visible';
   wrap.appendChild(svg);
   row.appendChild(wrap);
 
@@ -813,7 +814,7 @@ function buildDrugTrackRow(placeholder, opts={}){
   function colFromEvt(e){
     const rect = svg.getBoundingClientRect();
     const x = (e.clientX-rect.left)/rect.width*(COLS*COLW);
-    return Math.min(COLS-1, Math.max(0, Math.floor(x/COLW)));
+    return Math.min(COLS-1, Math.max(0, Math.round(x/COLW)));
   }
   function redraw(){
     svg.innerHTML = '';
@@ -826,7 +827,7 @@ function buildDrugTrackRow(placeholder, opts={}){
       svg.appendChild(gl);
     }
     points.forEach(pt=>{
-      const x = (pt.col+0.5)*COLW;
+      const x = pt.col*COLW;
       const tick = document.createElementNS(svgNS,'line');
       tick.setAttribute('x1',x); tick.setAttribute('x2',x);
       tick.setAttribute('y1',DRUG_H-5); tick.setAttribute('y2',DRUG_H-1);
@@ -970,7 +971,7 @@ function buildFluidTrackRow(n, opts={}){
   function colFromEvt(e){
     const rect = svg.getBoundingClientRect();
     const x = (e.clientX-rect.left)/rect.width*FL_W;
-    return Math.min(COLS-1, Math.max(0, Math.floor(x/COLW)));
+    return Math.min(COLS-1, Math.max(0, Math.round(x/COLW)));
   }
   function redraw(){
     svg.innerHTML = '';
