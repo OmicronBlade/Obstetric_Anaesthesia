@@ -120,7 +120,12 @@
 
   @media print{
     body{background:#fff;padding:0;}
-    .toolbar, .addrow-btn, .plot-hint, .no-print{display:none;}
+    .toolbar, .addrow-btn, .plot-hint, .no-print, .print-hide, .hxrow, .technique-bar{display:none !important;}
+    #grid-drugs input::placeholder{color:transparent !important;}
+    .box.medallergy-nil{display:flex;align-items:center;gap:6px 24px;}
+    .box.medallergy-nil textarea{width:50px;}
+    .box.medallergy-nil .field{margin-top:0 !important;}
+    .box.medallergy-nil input#allergies-field{width:50px;}
     .sheet{border:none;margin:0;padding:6mm 6mm;box-shadow:none;page-break-after:always;}
     .sheet:last-child{page-break-after:auto;}
     @page{size:A4;margin:6mm;}
@@ -133,6 +138,7 @@
   <h1>Obstetric Anaesthetic Record — editable, printable template</h1>
   <button onclick="window.print()">Print</button>
   <button onclick="applySimpleCase()" title="Fills in the common defaults for a straightforward primary/elective spinal C/S">Simple CS</button>
+  <button onclick="applyDrRosslee()" title="Fills anaesthetist details, removes Metoclopramide and adds Dexamethasone, Perfalgan, Morphine and PEP (Bolus) after Ondansetron">Dr Rosslee</button>
   <button class="secondary" onclick="resetForm()">Reset for next patient</button>
   <p>Nothing here is saved or sent anywhere — it lives only in this open tab. Reset before reusing for another patient. Prefilled defaults on selecting a technique are common-practice starting points, not instructions — verify and edit for the actual case.</p>
 </div>
@@ -147,7 +153,7 @@
     <div class="f"><label>Patient name</label><input type="text" class="xl"></div>
     <div class="f"><label>Folder no.</label><input type="text" class="md"></div>
     <div class="f"><label>DOB</label><input type="text" id="dob-field" class="md" placeholder="dd/mm/yyyy" onchange="updateAge()"></div>
-    <div class="f"><label>Date:</label><input type="text" class="md" placeholder="dd/mm/yyyy"></div>
+    <div class="f"><label>Date:</label><input type="text" class="md" id="date-field" placeholder="dd/mm/yyyy"></div>
   </div>
 
   <div class="box two-col">
@@ -176,7 +182,7 @@
           <option>FCFP</option>
         </select>
       </div>
-      <div class="field"><label>Consent obtained and confirmed:</label><span class="chk"><input type="checkbox" id="consent-obtained"></span></div>
+      <div class="field"><label>Consent obtained and confirmed:</label><span class="chk"><input type="checkbox" id="consent-obtained"></span><span class="chk" style="margin-left:10px;"><input type="checkbox" id="npo-8h"> NPO &gt; 8 hours</span></div>
       <div class="field"><label>NPO since (time):</label><input type="time">
         <select class="md" id="npo-status" style="margin-left:3px;">
           <option value=""></option>
@@ -188,7 +194,7 @@
     </div>
     <div>
       <div class="box-title">Details of anaesthetist</div>
-      <div class="field"><label>Name &amp; HPCSA no:</label><input type="text" class="lg"></div>
+      <div class="field"><label>Name &amp; HPCSA no:</label><input type="text" class="lg" id="anaes-name"></div>
       <div class="row">
         <span class="chk"><input type="checkbox" name="anaes-grade">Intern</span>
         <span class="chk"><input type="checkbox" name="anaes-grade">Comm. Service MO</span>
@@ -250,7 +256,7 @@
     </div>
     <textarea id="prev-anaes-text" rows="1" class="xl"></textarea>
   </div>
-  <div class="box">
+  <div class="box" id="med-allergy-box">
     <div class="box-title">Medication: <span class="chk no-print"><input type="checkbox" id="med-allergy-nil" onchange="toggleAllergyNil(this)"> Nil</span></div><textarea id="medication-field" rows="1" class="xl"></textarea>
     <div class="field" style="margin-top:4px;"><label class="box-title">Allergies:</label><input type="text" id="allergies-field" class="lg"></div>
   </div>
@@ -317,8 +323,8 @@
       <div class="box-title">Premedication:</div>
       <span class="chk"><input type="checkbox" id="premed-citrate">0.3M Sodium Citrate 30 mL per os</span>
       <div class="field"><label>Time:</label><input type="time"></div>
-      <span class="chk"><input type="checkbox" id="premed-maxalon">Metoclopramide 10 mg IV</span>
-      <div class="field"><label>Time:</label><input type="time"></div>
+      <div id="premed-maxalon-row"><span class="chk"><input type="checkbox" id="premed-maxalon">Metoclopramide 10 mg IV</span>
+      <div class="field"><label>Time:</label><input type="time"></div></div>
 
     </div>
     <div>
@@ -405,7 +411,7 @@
           <div class="section-label">Ventilation</div>
           <span class="chk"><input type="radio" name="g-vent" id="g-vent-spont">Spontaneous</span>
           <span class="chk"><input type="radio" name="g-vent" id="g-vent-controlled">Controlled</span>
-          <div class="field"><span class="chk"><input type="checkbox" id="g-o2air">O₂/Air</span><span class="chk"><input type="checkbox">O₂/Nitrous oxide</span><label>FiO₂:</label><input type="text" class="sm"></div>
+          <div class="field"><span class="chk"><input type="checkbox" id="g-o2air">O₂/Air</span><span class="chk"><input type="checkbox">O₂/Nitrous oxide</span><label>FiO₂:</label><input type="text" class="sm" id="g-fio2"></div>
         </div>
       </div>
     </div>
@@ -491,6 +497,7 @@
     <div id="grid-fluids"></div>
     <datalist id="fluid-options">
       <option value="PLL">
+      <option value="PLL + 20 IU Oxytocin 1000 ml">
       <option value="Ringer's Lactate">
       <option value="Normal Saline">
       <option value="Voluven">
@@ -517,7 +524,7 @@
         <label class="chk"><input type="checkbox" id="pos-tiltwedge">Tilt/Wedge</label>
         <label class="chk"><input type="checkbox">Lithotomy</label>
         <div class="legend-row no-print" id="chart-mode-selector">
-          <span class="mode-label" title="Manual: click a column to plot the active parameter. Drag: press and drag across the chart to trace it continuously. Auto-cycle: each click plots, then auto-advances SBP → MAP → DBP → HR.">Charting mode:</span>
+          <span class="mode-label" title="Manual: click a column to plot the active parameter. Drag: press and drag across the chart to trace it continuously. Auto-cycle: each click plots, then auto-advances SBP → MAP → HR.">Charting mode:</span>
           <button type="button" class="legend-btn active" data-mode="manual">Manual click</button>
           <button type="button" class="legend-btn" data-mode="drag">Drag to chart</button>
           <button type="button" class="legend-btn" data-mode="cycle">Auto-cycle</button>
@@ -567,7 +574,7 @@
     <textarea rows="2" class="xl" id="general-comments"></textarea>
   </div>
 
-  <div class="box">
+  <div class="box" id="recovery-box">
     <div class="row" style="justify-content:space-between;align-items:center;">
       <div class="box-title" style="margin:0;">Recovery room record</div>
       <span class="chk"><input type="checkbox" id="recovery-toggle" onchange="toggleRecoveryTable()">Show recovery room table</span>
@@ -661,6 +668,13 @@ function buildRow(containerId, label, opts={}){
     lbl.appendChild(inp);
   } else {
     lbl.textContent = label;
+  }
+  if(opts.roomAir){
+    const chk = document.createElement('span');
+    chk.className = 'chk';
+    chk.style.cssText = 'margin:0 0 0 4px;font-size:9.5px;';
+    chk.innerHTML = '<input type="checkbox" id="g-ra" onchange="toggleRoomAir(this)">RA';
+    lbl.appendChild(chk);
   }
   row.appendChild(lbl);
   const group = opts.group || 1;
@@ -780,6 +794,7 @@ function buildDrugTrackRow(placeholder, opts={}){
   svg.setAttribute('viewBox', `0 0 ${COLS*COLW} ${DRUG_H}`);
   svg.setAttribute('width', COLS*COLW);
   svg.setAttribute('height', DRUG_H);
+  svg.style.overflow = 'visible';
   wrap.appendChild(svg);
   row.appendChild(wrap);
 
@@ -799,7 +814,7 @@ function buildDrugTrackRow(placeholder, opts={}){
   function colFromEvt(e){
     const rect = svg.getBoundingClientRect();
     const x = (e.clientX-rect.left)/rect.width*(COLS*COLW);
-    return Math.min(COLS-1, Math.max(0, Math.floor(x/COLW)));
+    return Math.min(COLS-1, Math.max(0, Math.round(x/COLW)));
   }
   function redraw(){
     svg.innerHTML = '';
@@ -812,7 +827,7 @@ function buildDrugTrackRow(placeholder, opts={}){
       svg.appendChild(gl);
     }
     points.forEach(pt=>{
-      const x = (pt.col+0.5)*COLW;
+      const x = pt.col*COLW;
       const tick = document.createElementNS(svgNS,'line');
       tick.setAttribute('x1',x); tick.setAttribute('x2',x);
       tick.setAttribute('y1',DRUG_H-5); tick.setAttribute('y2',DRUG_H-1);
@@ -879,7 +894,7 @@ function addDrugTrackRow(){
 
 rebuildTimeline();
 initDrugRows();
-buildRow('grid-vitals-extra', 'FiO₂', {first:true, group:3});
+buildRow('grid-vitals-extra', 'FiO₂', {first:true, group:3, roomAir:true});
 buildRow('grid-vitals-extra', 'Sat %', {group:3});
 buildRow('grid-vitals-extra', 'EtCO₂', {gaOnly:true, group:3});
 buildRow('grid-vitals-extra', 'EtAA', {gaOnly:true, group:3, agentSelect:true});
@@ -956,7 +971,7 @@ function buildFluidTrackRow(n, opts={}){
   function colFromEvt(e){
     const rect = svg.getBoundingClientRect();
     const x = (e.clientX-rect.left)/rect.width*FL_W;
-    return Math.min(COLS-1, Math.max(0, Math.floor(x/COLW)));
+    return Math.min(COLS-1, Math.max(0, Math.round(x/COLW)));
   }
   function redraw(){
     svg.innerHTML = '';
@@ -1093,8 +1108,8 @@ const PARAMS = {
 };
 const chartData = {SBP:new Array(COLS).fill(null), DBP:new Array(COLS).fill(null), HR:new Array(COLS).fill(null), MAP:new Array(COLS).fill(null)};
 let activeParam = 'SBP';
-// Auto-cycle order requested: SBP -> MAP -> DBP -> HR -> back to SBP.
-const CYCLE_ORDER = ['SBP','MAP','DBP','HR'];
+// Auto-cycle order requested: SBP -> MAP -> HR -> back to SBP (DBP is left out).
+const CYCLE_ORDER = ['SBP','MAP','HR'];
 let chartMode = 'manual'; // 'manual' | 'drag' | 'cycle'
 
 function setActiveParam(p){
@@ -1147,6 +1162,17 @@ function redrawChart(){
     // symbols
     for(let i=0;i<COLS;i++){
       if(pts[i]!==null){
+        if(p==='HR'){
+          // real circle so the connecting line runs through the dot's exact centre
+          // (the "•" glyph sits off-centre of its text box)
+          const dot = document.createElementNS(nsSvg,'circle');
+          dot.setAttribute('cx', i*COLW);
+          dot.setAttribute('cy', valueToY(pts[i]));
+          dot.setAttribute('r', 3);
+          dot.setAttribute('fill', color);
+          plotGroup.appendChild(dot);
+          continue;
+        }
         const t = document.createElementNS(nsSvg,'text');
         t.setAttribute('x', i*COLW);
         t.setAttribute('y', valueToY(pts[i]));
@@ -1170,6 +1196,10 @@ function drawSeg(seg,color){
   plotGroup.appendChild(poly);
 }
 
+// Vitals symbols are drawn ON the vertical gridlines (x = col*COLW), so the
+// hitbox for a column must straddle its line: round to the nearest line
+// instead of flooring to the box on its right.
+function chartCol(x){ return Math.min(COLS-1, Math.max(0, Math.round(x/COLW))); }
 function svgPoint(evt){
   const rect = svg.getBoundingClientRect();
   const x = (evt.clientX-rect.left)/rect.width*plotW;
@@ -1180,7 +1210,7 @@ function svgPoint(evt){
 svg.addEventListener('click', (evt)=>{
   if(chartMode==='drag') return; // drag mode plots via pointerdown/pointermove instead
   const {x,y} = svgPoint(evt);
-  const col = Math.min(COLS-1, Math.max(0, Math.floor(x/COLW)));
+  const col = chartCol(x);
   const val = Math.min(220, Math.max(40, yToValue(y)));
   chartData[activeParam][col] = val;
   redrawChart();
@@ -1189,7 +1219,7 @@ svg.addEventListener('click', (evt)=>{
 svg.addEventListener('contextmenu', (evt)=>{
   evt.preventDefault();
   const {x} = svgPoint(evt);
-  const col = Math.min(COLS-1, Math.max(0, Math.floor(x/COLW)));
+  const col = chartCol(x);
   chartData[activeParam][col] = null;
   redrawChart();
 });
@@ -1200,7 +1230,7 @@ svg.addEventListener('contextmenu', (evt)=>{
 let isDragging = false, dragLastCol = null;
 function plotAtEvt(evt){
   const {x,y} = svgPoint(evt);
-  const col = Math.min(COLS-1, Math.max(0, Math.floor(x/COLW)));
+  const col = chartCol(x);
   const val = Math.min(220, Math.max(40, yToValue(y)));
   return {col, val};
 }
@@ -1488,6 +1518,41 @@ function applySimpleCase(){
   checkAndFire(document.getElementById('comp-standard-spinal'));
 }
 
+// ================= Dr Rosslee preset =================
+function applyDrRosslee(){
+  document.getElementById('anaes-name').value = 'M. Rosslee, MP 12345678';
+
+  // Metoclopramide is hidden (and unticked/cleared); Reset brings it back.
+  const row = document.getElementById('premed-maxalon-row');
+  row.querySelectorAll('input').forEach(i=>{ if(i.type==='checkbox') i.checked=false; else i.value=''; });
+  row.style.display = 'none';
+
+  // Drugs go straight after Ondansetron, reusing empty lines there first.
+  const container = document.getElementById('grid-drugs');
+  const nameOf = r => r.querySelector('.lbl input').value.trim().toLowerCase();
+  const wanted = ['Dexamethasone','Perfalgan','Morphine','PEP (Bolus)'];
+  const have = new Set(Array.from(container.children).map(nameOf));
+  let anchor = Array.from(container.children).find(r=>nameOf(r)==='ondansetron');
+  if(!anchor) return;
+  wanted.forEach(name=>{
+    if(have.has(name.toLowerCase())) return;
+    let next = anchor.nextElementSibling;
+    if(next && !nameOf(next)){
+      next.querySelector('.lbl input').value = name;
+      anchor = next;
+    } else {
+      buildDrugTrackRow('Drug', {value:name});
+      const created = container.lastElementChild;
+      container.insertBefore(created, next);
+      anchor = created;
+    }
+  });
+  const rows = Array.from(container.children);
+  rows.forEach(r=>r.classList.remove('first','last'));
+  rows[0].classList.add('first');
+  rows[rows.length-1].classList.add('last');
+}
+
 // ================= DOB -> age line at top of History =================
 function updateAge(){
   const dob = document.getElementById('dob-field').value;
@@ -1520,10 +1585,46 @@ function toggleRecoveryTable(){
   document.getElementById('recovery-table-wrap').classList.toggle('show', document.getElementById('recovery-toggle').checked);
 }
 
+// ================= Room air (RA) -> FiO2 0.21 =================
+// Fills the FiO2 text box and the FiO2 chart row; unticking clears only
+// values that still read 0.21, leaving anything typed over it alone.
+function toggleRoomAir(cb){
+  const boxes = [document.getElementById('g-fio2'), ...document.querySelectorAll('#grid-vitals-extra .tgrid.first .cell input')];
+  boxes.forEach(b=>{
+    if(!b) return;
+    if(cb.checked) b.value = '0.21';
+    else if(b.value.trim()==='0.21') b.value = '';
+  });
+}
+// ================= today's date =================
+function setToday(){
+  const d = new Date(), p = n=>String(n).padStart(2,'0');
+  document.getElementById('date-field').value = p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear();
+}
+setToday();
+
+// ================= print tidy-up =================
+// Applied just before printing, removed afterwards, so the screen is untouched.
+window.addEventListener('beforeprint', ()=>{
+  const isNil = id => (document.getElementById(id).value||'').trim().toLowerCase()==='nil';
+  document.getElementById('med-allergy-box').classList.toggle('medallergy-nil', isNil('medication-field') && isNil('allergies-field'));
+  document.querySelectorAll('textarea.additional').forEach(t=>{
+    const f = t.closest('.field');
+    if(f) f.classList.toggle('print-hide', !t.value.trim());
+  });
+  document.getElementById('recovery-box').classList.toggle('print-hide', !document.getElementById('recovery-toggle').checked);
+});
+window.addEventListener('afterprint', ()=>{
+  document.getElementById('med-allergy-box').classList.remove('medallergy-nil');
+  document.querySelectorAll('.print-hide').forEach(e=>e.classList.remove('print-hide'));
+});
+
 // ================= reset =================
 function resetForm(){
   if(!confirm('Clear every field on this form? This cannot be undone.')) return;
   document.getElementById('record').reset();
+  setToday();
+  document.getElementById('premed-maxalon-row').style.display = '';
   document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('active'));
   document.getElementById('regional-block').classList.remove('show');
   document.getElementById('general-block').classList.remove('show');
