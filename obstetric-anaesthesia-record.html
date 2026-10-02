@@ -122,10 +122,6 @@
     body{background:#fff;padding:0;}
     .toolbar, .addrow-btn, .plot-hint, .no-print, .print-hide, .hxrow, .technique-bar{display:none !important;}
     #grid-drugs input::placeholder{color:transparent !important;}
-    .box.medallergy-nil{display:flex;align-items:center;gap:6px 24px;}
-    .box.medallergy-nil textarea{width:50px;}
-    .box.medallergy-nil .field{margin-top:0 !important;}
-    .box.medallergy-nil input#allergies-field{width:50px;}
     .sheet{border:none;margin:0;padding:6mm 6mm;box-shadow:none;page-break-after:always;}
     .sheet:last-child{page-break-after:auto;}
     @page{size:A4;margin:6mm;}
@@ -199,7 +195,7 @@
         <span class="chk"><input type="checkbox" name="anaes-grade">Intern</span>
         <span class="chk"><input type="checkbox" name="anaes-grade">Comm. Service MO</span>
         <span class="chk"><input type="checkbox" name="anaes-grade">GP/MO &lt; 2 yrs</span>
-        <span class="chk"><input type="checkbox" name="anaes-grade">GP/MO ≥ 2 yrs</span>
+        <span class="chk"><input type="checkbox" name="anaes-grade" id="anaes-gp2">GP/MO ≥ 2 yrs</span>
         <span class="chk"><input type="checkbox" name="anaes-grade">Registrar</span>
         <span class="chk"><input type="checkbox" name="anaes-grade">Specialist
           <select class="sm" id="specialist-qual" style="margin-left:3px;">
@@ -234,7 +230,8 @@
     <div class="hxrow" style="margin-top:2px;">
       <span class="hxrow-label">Now:</span>
       <div class="comp-list no-print" id="now-checks">
-        <span class="chk"><input type="checkbox" data-tag="Elective Repeat/DVBAC"> Elective Repeat C/S/DVBAC</span>
+        <span class="chk"><input type="checkbox" data-tag="Elective Repeat C/S"> Elective Repeat C/S</span>
+        <span class="chk"><input type="checkbox" data-tag="DVBAC"> DVBAC</span>
         <span class="chk"><input type="checkbox" data-tag="NRCTG"> Non-Reassuring CTG</span>
         <span class="chk"><input type="checkbox" data-tag="Path CTG"> Pathological CTG</span>
         <span class="chk"><input type="checkbox" data-tag="FTP"> Failure to Progress</span>
@@ -250,13 +247,14 @@
   <div class="box">
     <div class="box-title" style="margin-bottom:3px;">Previous anaesthetic history:</div>
     <div class="comp-list no-print" id="prev-anaes-checks">
+      <span class="chk"><input type="checkbox" data-tag="Nil"> Nil</span>
       <span class="chk"><input type="checkbox" data-tag="Previous Neuraxial Anaesthesia"> Previous Neuraxial Anaesthesia</span>
       <span class="chk"><input type="checkbox" data-tag="Previous GA"> Previous GA</span>
       <span class="chk"><input type="checkbox" data-tag="No complications"> No complications</span>
     </div>
     <textarea id="prev-anaes-text" rows="1" class="xl"></textarea>
   </div>
-  <div class="box" id="med-allergy-box">
+  <div class="box">
     <div class="box-title">Medication: <span class="chk no-print"><input type="checkbox" id="med-allergy-nil" onchange="toggleAllergyNil(this)"> Nil</span></div><textarea id="medication-field" rows="1" class="xl"></textarea>
     <div class="field" style="margin-top:4px;"><label class="box-title">Allergies:</label><input type="text" id="allergies-field" class="lg"></div>
   </div>
@@ -295,6 +293,7 @@
       <div class="field"><label>Neck:</label>
         <span class="chk"><input type="checkbox" id="airway-from">FROM</span>
         <span class="chk"><input type="checkbox" id="airway-fon">FON Access Assessed</span>
+        <span class="chk"><input type="checkbox" id="airway-short-neck">Short Neck</span>
       </div>
     </div>
     <div class="field"><label>Additional:</label><input type="text" class="xlg"></div>
@@ -362,6 +361,7 @@
             <span class="chk"><input type="radio" name="r-spinal-type" id="r-spinal-atraumatic">Atraumatic/PPN</span>
           </div>
           <div class="field"><label>Size (gauge):</label><input type="text" id="r-spinal-gauge" class="sm"></div>
+          <div class="field"><label>Needle length (mm):</label><input type="text" id="r-spinal-length" class="sm" value="90"></div>
         </div>
         <div>
           <div class="section-label">&nbsp;</div>
@@ -909,7 +909,7 @@ const fluidTracks = [];
 // the field stays free text, this just fills in the usual default.
 const FLUID_DEFAULTS = {
   'pll': 1000,
-  'pll + 20 IU oxytocin': 1000,
+  'pll + 20 iu oxytocin': 1000,
   "ringer's lactate": 1000,
   'ringers lactate': 1000,
   'normal saline': 1000,
@@ -1496,7 +1496,7 @@ function applySimpleCase(){
   if(consent) consent.checked = true;
 
   checkAndFire(document.querySelector('#history-checks input[data-tag="NBB"]'));
-  checkAndFire(document.querySelector('#now-checks input[data-tag="Elective Repeat/DVBAC"]'));
+  checkAndFire(document.querySelector('#now-checks input[data-tag="Elective Repeat C/S"]'));
 
   quickFill('cvs-field', 'S1, S2, No murmurs, No failure');
   quickFill('resp-field', 'AEB, Clear, No distress');
@@ -1522,6 +1522,7 @@ function applySimpleCase(){
 // ================= Dr Rosslee preset =================
 function applyDrRosslee(){
   document.getElementById('anaes-name').value = 'M. Rosslee, MP ';
+  document.getElementById('anaes-gp2').checked = true;
 
   // Metoclopramide is hidden (and unticked/cleared); Reset brings it back.
   const row = document.getElementById('premed-maxalon-row');
@@ -1587,10 +1588,10 @@ function toggleRecoveryTable(){
 }
 
 // ================= Room air (RA) -> FiO2 0.21 =================
-// Fills the FiO2 text box and the FiO2 chart row; unticking clears only
+// Fills the FiO2 text box and the FiO2 chart row (except its final cell); unticking clears only
 // values that still read 0.21, leaving anything typed over it alone.
 function toggleRoomAir(cb){
-  const boxes = [document.getElementById('g-fio2'), ...document.querySelectorAll('#grid-vitals-extra .tgrid.first .cell input')];
+  const boxes = [document.getElementById('g-fio2'), ...Array.from(document.querySelectorAll('#grid-vitals-extra .tgrid.first .cell input')).slice(0,-1)];
   boxes.forEach(b=>{
     if(!b) return;
     if(cb.checked) b.value = '0.21';
@@ -1607,16 +1608,9 @@ setToday();
 // ================= print tidy-up =================
 // Applied just before printing, removed afterwards, so the screen is untouched.
 window.addEventListener('beforeprint', ()=>{
-  const isNil = id => (document.getElementById(id).value||'').trim().toLowerCase()==='nil';
-  document.getElementById('med-allergy-box').classList.toggle('medallergy-nil', isNil('medication-field') && isNil('allergies-field'));
-  document.querySelectorAll('textarea.additional').forEach(t=>{
-    const f = t.closest('.field');
-    if(f) f.classList.toggle('print-hide', !t.value.trim());
-  });
   document.getElementById('recovery-box').classList.toggle('print-hide', !document.getElementById('recovery-toggle').checked);
 });
 window.addEventListener('afterprint', ()=>{
-  document.getElementById('med-allergy-box').classList.remove('medallergy-nil');
   document.querySelectorAll('.print-hide').forEach(e=>e.classList.remove('print-hide'));
 });
 
