@@ -138,6 +138,7 @@
   <h1>Obstetric Anaesthetic Record — editable, printable template</h1>
   <button onclick="window.print()">Print</button>
   <button onclick="applySimpleCase()" title="Fills in the common defaults for a straightforward primary/elective spinal C/S">Simple CS</button>
+  <button onclick="applyDrRosslee()" title="Fills anaesthetist details, removes Metoclopramide and adds Dexamethasone, Perfalgan, Morphine and PEP (Bolus) after Ondansetron">Dr Rosslee</button>
   <button class="secondary" onclick="resetForm()">Reset for next patient</button>
   <p>Nothing here is saved or sent anywhere — it lives only in this open tab. Reset before reusing for another patient. Prefilled defaults on selecting a technique are common-practice starting points, not instructions — verify and edit for the actual case.</p>
 </div>
@@ -193,7 +194,7 @@
     </div>
     <div>
       <div class="box-title">Details of anaesthetist</div>
-      <div class="field"><label>Name &amp; HPCSA no:</label><input type="text" class="lg"></div>
+      <div class="field"><label>Name &amp; HPCSA no:</label><input type="text" class="lg" id="anaes-name"></div>
       <div class="row">
         <span class="chk"><input type="checkbox" name="anaes-grade">Intern</span>
         <span class="chk"><input type="checkbox" name="anaes-grade">Comm. Service MO</span>
@@ -322,8 +323,8 @@
       <div class="box-title">Premedication:</div>
       <span class="chk"><input type="checkbox" id="premed-citrate">0.3M Sodium Citrate 30 mL per os</span>
       <div class="field"><label>Time:</label><input type="time"></div>
-      <span class="chk"><input type="checkbox" id="premed-maxalon">Metoclopramide 10 mg IV</span>
-      <div class="field"><label>Time:</label><input type="time"></div>
+      <div id="premed-maxalon-row"><span class="chk"><input type="checkbox" id="premed-maxalon">Metoclopramide 10 mg IV</span>
+      <div class="field"><label>Time:</label><input type="time"></div></div>
 
     </div>
     <div>
@@ -523,7 +524,7 @@
         <label class="chk"><input type="checkbox" id="pos-tiltwedge">Tilt/Wedge</label>
         <label class="chk"><input type="checkbox">Lithotomy</label>
         <div class="legend-row no-print" id="chart-mode-selector">
-          <span class="mode-label" title="Manual: click a column to plot the active parameter. Drag: press and drag across the chart to trace it continuously. Auto-cycle: each click plots, then auto-advances SBP → MAP → DBP → HR.">Charting mode:</span>
+          <span class="mode-label" title="Manual: click a column to plot the active parameter. Drag: press and drag across the chart to trace it continuously. Auto-cycle: each click plots, then auto-advances SBP → MAP → HR.">Charting mode:</span>
           <button type="button" class="legend-btn active" data-mode="manual">Manual click</button>
           <button type="button" class="legend-btn" data-mode="drag">Drag to chart</button>
           <button type="button" class="legend-btn" data-mode="cycle">Auto-cycle</button>
@@ -1106,8 +1107,8 @@ const PARAMS = {
 };
 const chartData = {SBP:new Array(COLS).fill(null), DBP:new Array(COLS).fill(null), HR:new Array(COLS).fill(null), MAP:new Array(COLS).fill(null)};
 let activeParam = 'SBP';
-// Auto-cycle order requested: SBP -> MAP -> DBP -> HR -> back to SBP.
-const CYCLE_ORDER = ['SBP','MAP','DBP','HR'];
+// Auto-cycle order requested: SBP -> MAP -> HR -> back to SBP (DBP is left out).
+const CYCLE_ORDER = ['SBP','MAP','HR'];
 let chartMode = 'manual'; // 'manual' | 'drag' | 'cycle'
 
 function setActiveParam(p){
@@ -1501,6 +1502,41 @@ function applySimpleCase(){
   checkAndFire(document.getElementById('comp-standard-spinal'));
 }
 
+// ================= Dr Rosslee preset =================
+function applyDrRosslee(){
+  document.getElementById('anaes-name').value = 'M. Rosslee, MP 12345678';
+
+  // Metoclopramide is hidden (and unticked/cleared); Reset brings it back.
+  const row = document.getElementById('premed-maxalon-row');
+  row.querySelectorAll('input').forEach(i=>{ if(i.type==='checkbox') i.checked=false; else i.value=''; });
+  row.style.display = 'none';
+
+  // Drugs go straight after Ondansetron, reusing empty lines there first.
+  const container = document.getElementById('grid-drugs');
+  const nameOf = r => r.querySelector('.lbl input').value.trim().toLowerCase();
+  const wanted = ['Dexamethasone','Perfalgan','Morphine','PEP (Bolus)'];
+  const have = new Set(Array.from(container.children).map(nameOf));
+  let anchor = Array.from(container.children).find(r=>nameOf(r)==='ondansetron');
+  if(!anchor) return;
+  wanted.forEach(name=>{
+    if(have.has(name.toLowerCase())) return;
+    let next = anchor.nextElementSibling;
+    if(next && !nameOf(next)){
+      next.querySelector('.lbl input').value = name;
+      anchor = next;
+    } else {
+      buildDrugTrackRow('Drug', {value:name});
+      const created = container.lastElementChild;
+      container.insertBefore(created, next);
+      anchor = created;
+    }
+  });
+  const rows = Array.from(container.children);
+  rows.forEach(r=>r.classList.remove('first','last'));
+  rows[0].classList.add('first');
+  rows[rows.length-1].classList.add('last');
+}
+
 // ================= DOB -> age line at top of History =================
 function updateAge(){
   const dob = document.getElementById('dob-field').value;
@@ -1572,6 +1608,7 @@ function resetForm(){
   if(!confirm('Clear every field on this form? This cannot be undone.')) return;
   document.getElementById('record').reset();
   setToday();
+  document.getElementById('premed-maxalon-row').style.display = '';
   document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('active'));
   document.getElementById('regional-block').classList.remove('show');
   document.getElementById('general-block').classList.remove('show');
