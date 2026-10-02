@@ -1162,6 +1162,17 @@ function redrawChart(){
     // symbols
     for(let i=0;i<COLS;i++){
       if(pts[i]!==null){
+        if(p==='HR'){
+          // real circle so the connecting line runs through the dot's exact centre
+          // (the "•" glyph sits off-centre of its text box)
+          const dot = document.createElementNS(nsSvg,'circle');
+          dot.setAttribute('cx', i*COLW);
+          dot.setAttribute('cy', valueToY(pts[i]));
+          dot.setAttribute('r', 3);
+          dot.setAttribute('fill', color);
+          plotGroup.appendChild(dot);
+          continue;
+        }
         const t = document.createElementNS(nsSvg,'text');
         t.setAttribute('x', i*COLW);
         t.setAttribute('y', valueToY(pts[i]));
