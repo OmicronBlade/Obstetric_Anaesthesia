@@ -410,7 +410,7 @@
           <div class="section-label">Ventilation</div>
           <span class="chk"><input type="radio" name="g-vent" id="g-vent-spont">Spontaneous</span>
           <span class="chk"><input type="radio" name="g-vent" id="g-vent-controlled">Controlled</span>
-          <div class="field"><span class="chk"><input type="checkbox" id="g-o2air">O₂/Air</span><span class="chk"><input type="checkbox">O₂/Nitrous oxide</span><label>FiO₂:</label><input type="text" class="sm" id="g-fio2"><span class="chk" style="margin-left:6px;"><input type="checkbox" id="g-ra" onchange="toggleRoomAir(this)">RA</span></div>
+          <div class="field"><span class="chk"><input type="checkbox" id="g-o2air">O₂/Air</span><span class="chk"><input type="checkbox">O₂/Nitrous oxide</span><label>FiO₂:</label><input type="text" class="sm" id="g-fio2"></div>
         </div>
       </div>
     </div>
@@ -668,6 +668,13 @@ function buildRow(containerId, label, opts={}){
   } else {
     lbl.textContent = label;
   }
+  if(opts.roomAir){
+    const chk = document.createElement('span');
+    chk.className = 'chk';
+    chk.style.cssText = 'margin:0 0 0 4px;font-size:9.5px;';
+    chk.innerHTML = '<input type="checkbox" id="g-ra" onchange="toggleRoomAir(this)">RA';
+    lbl.appendChild(chk);
+  }
   row.appendChild(lbl);
   const group = opts.group || 1;
   for(let i=0;i<COLS;i+=group){
@@ -885,7 +892,7 @@ function addDrugTrackRow(){
 
 rebuildTimeline();
 initDrugRows();
-buildRow('grid-vitals-extra', 'FiO₂', {first:true, group:3});
+buildRow('grid-vitals-extra', 'FiO₂', {first:true, group:3, roomAir:true});
 buildRow('grid-vitals-extra', 'Sat %', {group:3});
 buildRow('grid-vitals-extra', 'EtCO₂', {gaOnly:true, group:3});
 buildRow('grid-vitals-extra', 'EtAA', {gaOnly:true, group:3, agentSelect:true});
