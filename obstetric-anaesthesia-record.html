@@ -152,7 +152,7 @@
     <div class="f"><label>Patient name</label><input type="text" class="xl"></div>
     <div class="f"><label>Folder no.</label><input type="text" class="md"></div>
     <div class="f"><label>DOB</label><input type="text" id="dob-field" class="md" placeholder="dd/mm/yyyy" onchange="updateAge()"></div>
-    <div class="f"><label>Date:</label><input type="text" class="md" placeholder="dd/mm/yyyy"></div>
+    <div class="f"><label>Date:</label><input type="text" class="md" id="date-field" placeholder="dd/mm/yyyy"></div>
   </div>
 
   <div class="box two-col">
@@ -181,7 +181,7 @@
           <option>FCFP</option>
         </select>
       </div>
-      <div class="field"><label>Consent obtained and confirmed:</label><span class="chk"><input type="checkbox" id="consent-obtained"></span></div>
+      <div class="field"><label>Consent obtained and confirmed:</label><span class="chk"><input type="checkbox" id="consent-obtained"></span><span class="chk" style="margin-left:10px;"><input type="checkbox" id="npo-8h"> NPO &gt; 8 hours</span></div>
       <div class="field"><label>NPO since (time):</label><input type="time">
         <select class="md" id="npo-status" style="margin-left:3px;">
           <option value=""></option>
@@ -410,7 +410,7 @@
           <div class="section-label">Ventilation</div>
           <span class="chk"><input type="radio" name="g-vent" id="g-vent-spont">Spontaneous</span>
           <span class="chk"><input type="radio" name="g-vent" id="g-vent-controlled">Controlled</span>
-          <div class="field"><span class="chk"><input type="checkbox" id="g-o2air">O₂/Air</span><span class="chk"><input type="checkbox">O₂/Nitrous oxide</span><label>FiO₂:</label><input type="text" class="sm"></div>
+          <div class="field"><span class="chk"><input type="checkbox" id="g-o2air">O₂/Air</span><span class="chk"><input type="checkbox">O₂/Nitrous oxide</span><label>FiO₂:</label><input type="text" class="sm" id="g-fio2"><span class="chk" style="margin-left:6px;"><input type="checkbox" id="g-ra" onchange="toggleRoomAir(this)">RA</span></div>
         </div>
       </div>
     </div>
@@ -496,6 +496,7 @@
     <div id="grid-fluids"></div>
     <datalist id="fluid-options">
       <option value="PLL">
+      <option value="PLL + 20 IU Oxytocin 1000 ml">
       <option value="Ringer's Lactate">
       <option value="Normal Saline">
       <option value="Voluven">
@@ -1525,6 +1526,24 @@ function toggleRecoveryTable(){
   document.getElementById('recovery-table-wrap').classList.toggle('show', document.getElementById('recovery-toggle').checked);
 }
 
+// ================= Room air (RA) -> FiO2 0.21 =================
+// Fills the FiO2 text box and the FiO2 chart row; unticking clears only
+// values that still read 0.21, leaving anything typed over it alone.
+function toggleRoomAir(cb){
+  const boxes = [document.getElementById('g-fio2'), ...document.querySelectorAll('#grid-vitals-extra .tgrid.first .cell input')];
+  boxes.forEach(b=>{
+    if(!b) return;
+    if(cb.checked) b.value = '0.21';
+    else if(b.value.trim()==='0.21') b.value = '';
+  });
+}
+// ================= today's date =================
+function setToday(){
+  const d = new Date(), p = n=>String(n).padStart(2,'0');
+  document.getElementById('date-field').value = p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear();
+}
+setToday();
+
 // ================= print tidy-up =================
 // Applied just before printing, removed afterwards, so the screen is untouched.
 window.addEventListener('beforeprint', ()=>{
@@ -1545,6 +1564,7 @@ window.addEventListener('afterprint', ()=>{
 function resetForm(){
   if(!confirm('Clear every field on this form? This cannot be undone.')) return;
   document.getElementById('record').reset();
+  setToday();
   document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('active'));
   document.getElementById('regional-block').classList.remove('show');
   document.getElementById('general-block').classList.remove('show');
