@@ -50,6 +50,10 @@
   @media print{input.invalid{outline:none;background:transparent !important;}}
   .box-title{font-weight:600;margin-right:6px;}
   .row{display:flex;flex-wrap:wrap;gap:3px 14px;align-items:center;}
+  .row.times-row{flex-wrap:nowrap;gap:3px 4px;}
+  .times-row .field{gap:2px;}
+  .times-row .field label{font-size:9px;letter-spacing:-.1px;}
+  .times-row .field input[type=time]{font-size:9px;padding:0 1px;width:74px;}
   .field{display:inline-flex;align-items:center;gap:4px;margin:1px 0;}
   .field label{white-space:nowrap;color:var(--muted);font-size:11.5px;}
   input[type=text], input[type=number], input[type=time], textarea, select{
@@ -440,9 +444,10 @@
   <h2 class="record-title">Obstetric Anaesthetic Record</h2>
 
   <div class="box">
-    <div class="box-title">Times</div>
-    <div class="row">
-      <div class="field"><label>Spinal/Induction (I):</label><input type="time" id="t-induction" onchange="calcTimes(); rebuildTimeline();"></div>
+    <div class="box-title">Times <label class="no-print" style="font-weight:400;font-size:10px;color:var(--muted);white-space:nowrap;margin-left:6px;"><input type="checkbox" id="t-half-hour" onchange="rebuildTimeline()"> 00/30 min</label></div>
+    <div class="row times-row">
+      <div class="field"><label>First Vital:</label><input type="time" id="t-firstvital" onchange="rebuildTimeline()"></div>
+      <div class="field"><label>Spinal/Induction (I):</label><input type="time" id="t-induction" onchange="calcTimes()"></div>
       <div class="field"><label>Skin Incision (S):</label><input type="time" id="t-skin" onchange="calcTimes()"></div>
       <div class="field"><label>Uterine Incision (U):</label><input type="time" id="t-incision" onchange="calcTimes()"></div>
       <div class="field"><label>Cord Clamp (D):</label><input type="time" id="t-delivery" onchange="calcTimes()"></div>
@@ -618,21 +623,23 @@
 
 <script>
 // ================= shared time-column grid rows =================
-// 37 columns of 5 min each = 0..180 min (3 hr), anchored to Spinal/Induction time.
+// 37 columns of 5 min each = 0..180 min (3 hr), anchored to the First Vital time.
 const COLS = 37, COLW = 16;
 
 function chartStartMinutes(){
-  const v = document.getElementById('t-induction').value;
+  const v = document.getElementById('t-firstvital').value;
   if(!v) return null;
   const [h,m] = v.split(':').map(Number);
   return h*60+m;
 }
-// Floor to the nearest 15-min mark at or before the Spinal/Induction time
-// (10:13 -> 10:00, 15:27 -> 15:15, 12:03 -> 12:00).
+// Floor to the nearest 15-min mark at or before the First Vital time
+// (10:13 -> 10:00, 15:27 -> 15:15, 12:03 -> 12:00), or to the nearest 00/30
+// mark when the "00/30 min" box is ticked (15:27 -> 15:00, 10:41 -> 10:30).
 function chartStartRounded(){
   const raw = chartStartMinutes();
   if(raw===null) return null;
-  return raw - (raw % 15);
+  const step = document.getElementById('t-half-hour').checked ? 30 : 15;
+  return raw - (raw % step);
 }
 function minutesToClock(mins){
   const t = ((Math.round(mins)%1440)+1440)%1440;
@@ -700,7 +707,7 @@ function buildRow(containerId, label, opts={}){
 
 // Time header: wide cells every 30 min (6 x 5-min columns), pre-filled (and
 // still editable) with the computed clock time, starting at the 15-min mark
-// at/before the Spinal/Induction time. Built twice — once above Drugs, once
+// at/before the First Vital time. Built twice — once above Drugs, once
 // again directly above the Vitals chart — so the times are visible without
 // scrolling back up while charting vitals.
 const HEADER_GROUP = 6;
