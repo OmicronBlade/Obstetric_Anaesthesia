@@ -46,6 +46,8 @@
   .patient-strip .f:last-child{border-right:none;}
   .patient-strip label{font-size:10px;color:var(--muted);display:block;}
   .box{border:1px solid var(--line);margin-bottom:-1px;padding:4px 6px;}
+  input.invalid{outline:2px solid #c0392b;background:#fdecea !important;}
+  @media print{input.invalid{outline:none;background:transparent !important;}}
   .box-title{font-weight:600;margin-right:6px;}
   .row{display:flex;flex-wrap:wrap;gap:3px 14px;align-items:center;}
   .field{display:inline-flex;align-items:center;gap:4px;margin:1px 0;}
@@ -262,10 +264,10 @@
   <div class="box">
     <div class="row">
       <div class="box-title">General examination</div>
-      <div class="field"><label>Height (m)</label><input type="number" step="0.01" class="sm"></div>
-      <div class="field"><label>Mass (kg)</label><input type="number" step="0.1" class="sm"></div>
+      <div class="field"><label>Height (m)</label><input type="number" step="0.01" class="sm" data-label="Height" data-unit="m" data-min="1.3" data-max="2.2"></div>
+      <div class="field"><label>Mass (kg)</label><input type="number" step="0.1" class="sm" data-label="Mass" data-unit="kg" data-min="30" data-max="250"></div>
       <div class="field"><label>BP</label><input type="text" class="sm" placeholder="       /"></div>
-      <div class="field"><label>Pulse</label><input type="number" class="sm"></div>
+      <div class="field"><label>Pulse</label><input type="number" class="sm" data-label="Pulse" data-unit="bpm" data-min="40" data-max="180"></div>
       <div class="field"><label>O₂ Sats (%)</label><input type="number" class="sm"></div>
     </div>
     <div class="field"><label>CVS:</label><input type="text" id="cvs-field" class="lg"><button type="button" class="quickfill no-print" onclick="quickFill('cvs-field','S1, S2, No murmurs, No failure')">Normal</button></div>
@@ -309,8 +311,8 @@
   <div class="box">
     <div class="box-title">Investigations</div>
     <div class="row">
-      <div class="field"><label>Hb</label><input type="number" step="0.1" class="sm"></div>
-      <div class="field"><label>Platelets</label><input type="number" class="sm"></div>
+      <div class="field"><label>Hb</label><input type="number" step="0.1" class="sm" data-label="Hb" data-unit="g/dL" data-min="5" data-max="20"></div>
+      <div class="field"><label>Platelets</label><input type="number" class="sm" data-label="Platelets" data-unit="x10⁹/L" data-min="10" data-max="750"></div>
       <div class="field"><label>Time:</label><input type="time"></div>
       <div class="field"><label>Urea &amp; electrolytes:</label><input type="text" class="lg"></div>
     </div>
@@ -411,7 +413,7 @@
           <div class="section-label">Ventilation</div>
           <span class="chk"><input type="radio" name="g-vent" id="g-vent-spont">Spontaneous</span>
           <span class="chk"><input type="radio" name="g-vent" id="g-vent-controlled">Controlled</span>
-          <div class="field"><span class="chk"><input type="checkbox" id="g-o2air">O₂/Air</span><span class="chk"><input type="checkbox">O₂/Nitrous oxide</span><label>FiO₂:</label><input type="text" class="sm" id="g-fio2"></div>
+          <div class="field"><span class="chk"><input type="checkbox" id="g-o2air">O₂/Air</span><span class="chk"><input type="checkbox">O₂/Nitrous oxide</span><label>FiO₂:</label><input type="text" class="sm" id="g-fio2" data-label="FiO₂" data-min="0.21" data-max="1.0"></div>
         </div>
       </div>
     </div>
@@ -551,8 +553,8 @@
   </div>
 
   <div class="box two-col">
-    <div class="field"><label>Blood loss (mL):</label><input type="number" id="blood-loss-field" class="sm"></div>
-    <div class="field"><label>Urine output (mL):</label><input type="number" class="sm"></div>
+    <div class="field"><label>Blood loss (mL):</label><input type="number" id="blood-loss-field" class="sm" data-label="Blood loss" data-unit="mL" data-gt="0"></div>
+    <div class="field"><label>Urine output (mL):</label><input type="number" class="sm" data-label="Urine output" data-unit="mL" data-gt="0"></div>
   </div>
 
   <div class="box no-print">
@@ -594,7 +596,7 @@
     <div class="row">
       <div class="box-title">On admission to recovery:</div>
       <div class="field"><label>BP</label><input type="text" class="sm" placeholder="       /"></div>
-      <div class="field"><label>Pulse</label><input type="number" class="sm"></div>
+      <div class="field"><label>Pulse</label><input type="number" class="sm" data-label="Pulse" data-unit="bpm" data-min="40" data-max="180"></div>
       <div class="field"><label>Sats (%)</label><input type="number" class="sm"></div>
     </div>
   </div>
@@ -897,6 +899,9 @@ function addDrugTrackRow(){
 rebuildTimeline();
 initDrugRows();
 buildRow('grid-vitals-extra', 'FiO₂', {first:true, group:3, roomAir:true});
+document.querySelectorAll('#grid-vitals-extra .tgrid.first .cell input').forEach(i=>{
+  i.dataset.label = 'FiO₂'; i.dataset.min = '0.21'; i.dataset.max = '1.0';
+});
 buildRow('grid-vitals-extra', 'Sat %', {group:3});
 buildRow('grid-vitals-extra', 'EtCO₂', {gaOnly:true, group:3});
 buildRow('grid-vitals-extra', 'EtAA', {gaOnly:true, group:3, agentSelect:true});
@@ -1427,6 +1432,7 @@ function copyBloodLoss(){
   const result = document.getElementById('bl-result').textContent;
   if(result==='—') return;
   document.getElementById('blood-loss-field').value = result;
+  validateField(document.getElementById('blood-loss-field'));
 }
 
 // ================= checklists -> free-text fields =================
@@ -1637,6 +1643,30 @@ function toggleRecoveryTable(){
   document.getElementById('recovery-table-wrap').classList.toggle('show', document.getElementById('recovery-toggle').checked);
 }
 
+// ================= Range checks =================
+// Fields carrying data-min / data-max (inclusive) or data-gt (strictly greater
+// than) are flagged red with an explanatory tooltip when out of range. This is a
+// warning only — the value is kept so a genuine outlier can still be recorded.
+function validateField(el){
+  const d = el.dataset;
+  const raw = el.value.trim();
+  let msg = '';
+  if(raw!==''){
+    const v = Number(raw);
+    const u = d.unit ? ' '+d.unit : '';
+    if(isNaN(v)) msg = d.label+' must be a number';
+    else if(d.min!==undefined && (v<parseFloat(d.min) || v>parseFloat(d.max)))
+      msg = d.label+' should be between '+d.min+' and '+d.max+u;
+    else if(d.gt!==undefined && !(v>parseFloat(d.gt)))
+      msg = d.label+' must be greater than '+d.gt+u;
+  }
+  el.classList.toggle('invalid', !!msg);
+  if(msg) el.title = msg; else el.removeAttribute('title');
+}
+['input','change'].forEach(ev=>document.addEventListener(ev, e=>{
+  if(e.target.matches && e.target.matches('input[data-min], input[data-gt]')) validateField(e.target);
+}));
+
 // ================= Room air (RA) -> FiO2 0.21 =================
 // Fills the FiO2 text box and the FiO2 chart row (except its final cell); unticking clears only
 // values that still read 0.21, leaving anything typed over it alone.
@@ -1668,6 +1698,7 @@ window.addEventListener('afterprint', ()=>{
 function resetForm(){
   if(!confirm('Clear every field on this form? This cannot be undone.')) return;
   document.getElementById('record').reset();
+  document.querySelectorAll('input.invalid').forEach(i=>{ i.classList.remove('invalid'); i.removeAttribute('title'); });
   setToday();
   document.getElementById('premed-maxalon-row').style.display = '';
   document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('active'));
