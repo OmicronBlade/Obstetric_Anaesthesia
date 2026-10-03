@@ -134,7 +134,7 @@
   <h1>Obstetric Anaesthetic Record — editable, printable template</h1>
   <button onclick="window.print()">Print</button>
   <button onclick="applySimpleCase()" title="Fills in the common defaults for a straightforward primary/elective spinal C/S">Simple CS</button>
-  <button onclick="applyDrRosslee()" title="Fills anaesthetist details, removes Metoclopramide and adds Dexamethasone, Perfalgan, Morphine and PEP (Bolus) after Ondansetron">Dr Rosslee</button>
+  <button onclick="applyDrRosslee()" title="Fills anaesthetist details, removes Metoclopramide, adds Dexamethasone, Perfalgan, Morphine, PEP (Bolus) and Bupivacaine after Ondansetron, and sets PLL and PLL + 20 IU Oxytocin as the first two fluids">Dr Rosslee</button>
   <button class="secondary" onclick="resetForm()">Reset for next patient</button>
   <p>Nothing here is saved or sent anywhere — it lives only in this open tab. Reset before reusing for another patient. Prefilled defaults on selecting a technique are common-practice starting points, not instructions — verify and edit for the actual case.</p>
 </div>
@@ -477,6 +477,7 @@
       <option value="Syntometrine">
       <option value="PEP (ml/hour)">
       <option value="PEP (Bolus)">
+      <option value="Bupivacaine">
       <option value="Propofol (Cet)">
       <option value="Propofol">
       <option value="Rocuronium">
@@ -488,7 +489,7 @@
         <button type="button" class="addrow-btn" onclick="addFluidTrackRow()">+ Add fluid line</button>
       </div>
       <div class="legend-row" id="fluid-mode-selector" style="padding:2px 0 0;border-top:none;">
-        <span style="font-size:10px;color:var(--muted);">Tap Start, Finish or Ongoing, then click a fluid's line:</span>
+        <span style="font-size:10px;color:var(--muted);">Tap Start, Finish or Ongoing, then click a fluid's line (up to 3 runs per line; a repeat can only start after the previous run is finished):</span>
         <button type="button" class="legend-btn active" data-m="start"><span class="legend-sym" style="color:#1d5fd6;">○</span> Start</button>
         <button type="button" class="legend-btn" data-m="finish"><span class="legend-sym" style="color:#c0392b;">×</span> Finish</button>
         <button type="button" class="legend-btn" data-m="ongoing"><span class="legend-sym" style="color:#b3720a;">></span> Ongoing</button>
@@ -750,7 +751,8 @@ const DRUG_DEFAULTS = {
   'clindamycin': '600 mg',
   'syntometrine': '5 IU + 0.5 mg',
   'pep (ml/hour)': '20',
-  'pep (bolus)': '100'
+  'pep (bolus)': '100',
+  'bupivacaine': 'Local: 100 mg in 40 ml'
 };
 // Drugs whose standard dose is suggested again for every new point on the
 // line, not just the first — PEP boluses are routinely repeated at the same
@@ -966,13 +968,23 @@ function buildFluidTrackRow(n, opts={}){
 
   container.appendChild(row);
 
-  // endType: 'finish' (×, red) or 'ongoing' (→, amber, dashed line — bag still running)
-  const state = {start:null, end:null, endType:null};
+  // Up to 3 runs (start -> finish/ongoing) per line. endType: 'finish' (×, red)
+  // or 'ongoing' (>, amber, dashed line — bag still running).
+  const MAX_RUNS = 3;
+  const state = {runs:[]};
 
   function colFromEvt(e){
     const rect = svg.getBoundingClientRect();
     const x = (e.clientX-rect.left)/rect.width*FL_W;
     return Math.min(COLS-1, Math.max(0, Math.round(x/COLW)));
+  }
+  function mark(x, y, ch, fill, size){
+    const t = document.createElementNS(svgNS,'text');
+    t.setAttribute('x',x); t.setAttribute('y',y);
+    t.setAttribute('text-anchor','middle'); t.setAttribute('dominant-baseline','middle');
+    t.setAttribute('font-size',size||'14'); t.setAttribute('font-weight','700');
+    t.setAttribute('fill',fill); t.textContent = ch;
+    svg.appendChild(t);
   }
   function redraw(){
     svg.innerHTML = '';
@@ -985,47 +997,64 @@ function buildFluidTrackRow(n, opts={}){
       svg.appendChild(gl);
     }
     const midY = FL_H/2;
-    if(state.start!==null && state.end!==null){
-      const line = document.createElementNS(svgNS,'line');
-      line.setAttribute('x1',state.start*COLW);
-      line.setAttribute('x2',state.end*COLW);
-      line.setAttribute('y1',midY); line.setAttribute('y2',midY);
-      line.setAttribute('stroke','#333'); line.setAttribute('stroke-width',1.5);
-      if(state.endType==='ongoing') line.setAttribute('stroke-dasharray','3,2');
-      svg.appendChild(line);
-    }
-    if(state.start!==null){
-      const t = document.createElementNS(svgNS,'text');
-      t.setAttribute('x',state.start*COLW); t.setAttribute('y',midY);
-      t.setAttribute('text-anchor','middle'); t.setAttribute('dominant-baseline','middle');
-      t.setAttribute('font-size','14'); t.setAttribute('font-weight','700');
-      t.setAttribute('fill','#1d5fd6'); t.textContent = '○';
-      svg.appendChild(t);
-    }
-    if(state.end!==null){
-      const t = document.createElementNS(svgNS,'text');
-      t.setAttribute('x',state.end*COLW); t.setAttribute('y',midY);
-      t.setAttribute('text-anchor','middle'); t.setAttribute('dominant-baseline','middle');
-      t.setAttribute('font-size','14'); t.setAttribute('font-weight','700');
-      if(state.endType==='ongoing'){ t.setAttribute('fill','#b3720a'); t.textContent = '>'; }
-      else { t.setAttribute('fill','#c0392b'); t.textContent = '×'; }
-      svg.appendChild(t);
-    }
+    state.runs.forEach((r,i)=>{
+      if(r.start!==null && r.end!==null){
+        const line = document.createElementNS(svgNS,'line');
+        line.setAttribute('x1',r.start*COLW);
+        line.setAttribute('x2',r.end*COLW);
+        line.setAttribute('y1',midY); line.setAttribute('y2',midY);
+        line.setAttribute('stroke','#333'); line.setAttribute('stroke-width',1.5);
+        if(r.endType==='ongoing') line.setAttribute('stroke-dasharray','3,2');
+        svg.appendChild(line);
+      }
+      if(r.start!==null){
+        mark(r.start*COLW, midY, '○', '#1d5fd6');
+        if(i>0) mark(r.start*COLW, 5, String(i+1), '#1d5fd6', '8');
+      }
+      if(r.end!==null){
+        if(r.endType==='ongoing') mark(r.end*COLW, midY, '>', '#b3720a');
+        else mark(r.end*COLW, midY, '×', '#c0392b');
+      }
+    });
   }
   svg.addEventListener('click', (e)=>{
     const col = colFromEvt(e);
-    if(fluidMode==='start'){ state.start = col; }
-    else { state.end = col; state.endType = fluidMode; }
+    const runs = state.runs;
+    // Active run = first incomplete one; otherwise a new run is begun.
+    let idx = runs.findIndex(r=>r.start===null || r.end===null);
+    if(fluidMode==='start'){
+      if(idx<0){
+        if(runs.length>=MAX_RUNS){ alert('All '+MAX_RUNS+' runs on this line are used. Right-click a mark to remove it first.'); return; }
+        runs.push({start:null,end:null,endType:null});
+        idx = runs.length-1;
+      }
+      const prev = runs[idx-1];
+      if(prev){
+        if(prev.endType!=='finish'){ alert('Run '+idx+' must be finished (×) before run '+(idx+1)+' can start.'); return; }
+        if(col<prev.end){ alert('Run '+(idx+1)+' cannot start before run '+idx+' finished.'); return; }
+      }
+      if(runs[idx].end!==null && col>runs[idx].end){ alert('Start cannot be after the finish.'); return; }
+      runs[idx].start = col;
+    } else {
+      if(idx<0 || runs[idx].start===null){ alert('Set a Start for this run first.'); return; }
+      if(col<runs[idx].start){ alert('Finish cannot be before the start.'); return; }
+      runs[idx].end = col; runs[idx].endType = fluidMode;
+    }
     redraw();
   });
   svg.addEventListener('contextmenu', (e)=>{
     e.preventDefault();
     const col = colFromEvt(e);
-    if(state.start!==null && state.end!==null){
-      if(Math.abs(state.start-col) <= Math.abs(state.end-col)) state.start=null;
-      else { state.end=null; state.endType=null; }
-    } else if(state.start!==null){ state.start=null; }
-    else if(state.end!==null){ state.end=null; state.endType=null; }
+    let best=Infinity, bi=-1, bk=null;
+    state.runs.forEach((r,i)=>{
+      if(r.start!==null && Math.abs(r.start-col)<best){ best=Math.abs(r.start-col); bi=i; bk='start'; }
+      if(r.end!==null && Math.abs(r.end-col)<best){ best=Math.abs(r.end-col); bi=i; bk='end'; }
+    });
+    if(bi<0) return;
+    if(bi<state.runs.length-1){ alert('Remove the later runs first.'); return; }
+    const r = state.runs[bi];
+    if(bk==='start') r.start = null; else { r.end = null; r.endType = null; }
+    if(r.start===null && r.end===null) state.runs.pop();
     redraw();
   });
   redraw();
@@ -1532,7 +1561,7 @@ function applyDrRosslee(){
   // Drugs go straight after Ondansetron, reusing empty lines there first.
   const container = document.getElementById('grid-drugs');
   const nameOf = r => r.querySelector('.lbl input').value.trim().toLowerCase();
-  const wanted = ['Dexamethasone','Perfalgan','Morphine','PEP (Bolus)'];
+  const wanted = ['Dexamethasone','Perfalgan','Morphine','PEP (Bolus)','Bupivacaine'];
   const have = new Set(Array.from(container.children).map(nameOf));
   let anchor = Array.from(container.children).find(r=>nameOf(r)==='ondansetron');
   if(!anchor) return;
@@ -1553,6 +1582,27 @@ function applyDrRosslee(){
   rows.forEach(r=>r.classList.remove('first','last'));
   rows[0].classList.add('first');
   rows[rows.length-1].classList.add('last');
+
+  // Fluids: PLL first, PLL + 20 IU Oxytocin second (reusing empty lines).
+  const fContainer = document.getElementById('grid-fluids');
+  const fNameOf = r => r.querySelector('.lbl input').value.trim().toLowerCase();
+  ['PLL','PLL + 20 IU Oxytocin'].forEach((name,i)=>{
+    if(Array.from(fContainer.children).some(r=>fNameOf(r)===name.toLowerCase())) return;
+    let target = fContainer.children[i];
+    if(!target || fNameOf(target)){
+      buildFluidTrackRow(i+1);
+      const created = fContainer.lastElementChild;
+      fContainer.insertBefore(created, target || null);
+      target = created;
+    }
+    const inp = target.querySelector('.lbl input');
+    inp.value = name;
+    inp.dispatchEvent(new Event('change'));
+  });
+  const fRows = Array.from(fContainer.children);
+  fRows.forEach(r=>r.classList.remove('first','last'));
+  fRows[0].classList.add('first');
+  fRows[fRows.length-1].classList.add('last');
 }
 
 // ================= DOB -> age line at top of History =================
