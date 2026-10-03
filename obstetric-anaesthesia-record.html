@@ -732,6 +732,12 @@ function buildTimeHeader(containerId, rowClass){
     const inp = document.createElement('input');
     inp.type = 'text';
     inp.value = start!==null ? minutesToClock(start + i*5) : '';
+    if(span<HEADER_GROUP){
+      // Final cell is narrower than a full time, so let its input spill
+      // symmetrically past the cell instead of clipping the text.
+      cell.style.overflow = 'visible';
+      inp.style.cssText = 'width:34px;margin-left:1px;position:relative;background:#f2f6f6;';
+    }
     cell.appendChild(inp);
     row.appendChild(cell);
   }
