@@ -1719,9 +1719,9 @@ function updateQR(){
   box.appendChild(cap);
 }
 // Typing fires input/change; fields filled by code (presets, Reset, autofill)
-// don't, so also re-check on a short timer and just before printing.
+// don't, so also re-check every 10 seconds and just before printing.
 ['input','change'].forEach(ev=>document.addEventListener(ev, updateQR, true));
-setInterval(updateQR, 400);
+setInterval(updateQR, 10000);
 window.addEventListener('beforeprint', updateQR);
 updateQR();
 
