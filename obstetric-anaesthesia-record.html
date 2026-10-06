@@ -1694,18 +1694,21 @@ function validateField(el){
 }));
 
 // ================= Digital signature QR (page 1, bottom right) =================
-// Payload:  SF: <snowflake id> / Pt: <patient name>, <folder no.> / Dr: <doctor name, MP no.>
+// Payload (one per line):  "SF": <snowflake id> / "Pt": <patient name>, <folder no.> / "Dr": <doctor name, MP no.>
 // The snowflake ID comes from snowflake.js and is minted once per record
 // (renewed on Reset).
 let recordSnowflake = '';
+let lastQRText = null;
 function updateQR(){
   const box = document.getElementById('qr-sig');
   if(!box || typeof qrcode==='undefined') return;
   if(!recordSnowflake) recordSnowflake = newSnowflake();
   const clean = id => (document.getElementById(id).value||'').replace(/\s+/g,' ').trim();
-  const text = 'SF: '+recordSnowflake+'\n'+
-    'Pt: '+[clean('pt-name'), clean('pt-folder')].filter(Boolean).join(', ')+'\n'+
-    'Dr: '+clean('anaes-name').replace(/,\s*$/,'');
+  const text = '"SF": '+recordSnowflake+'\n'+
+    '"Pt": '+[clean('pt-name'), clean('pt-folder')].filter(Boolean).join(', ')+'\n'+
+    '"Dr": '+clean('anaes-name').replace(/\./g,'').replace(/,\s*$/,'');
+  if(text===lastQRText) return; // nothing changed
+  lastQRText = text;
   qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
   const qr = qrcode(0,'M');
   qr.addData(text);
@@ -1715,10 +1718,11 @@ function updateQR(){
   cap.className = 'qr-cap'; cap.textContent = recordSnowflake;
   box.appendChild(cap);
 }
-['pt-name','pt-folder','anaes-name'].forEach(id=>{
-  const el = document.getElementById(id);
-  ['input','change'].forEach(ev=>el.addEventListener(ev, updateQR));
-});
+// Typing fires input/change; fields filled by code (presets, Reset, autofill)
+// don't, so also re-check on a short timer and just before printing.
+['input','change'].forEach(ev=>document.addEventListener(ev, updateQR, true));
+setInterval(updateQR, 400);
+window.addEventListener('beforeprint', updateQR);
 updateQR();
 
 // ================= Room air (RA) -> FiO2 0.21 =================
