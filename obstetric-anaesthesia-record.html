@@ -2928,6 +2928,7 @@ var qrcode = function() {
 }));
 
 </script>
+<script src="snowflake.js"></script>
 <script>
 // ================= shared time-column grid rows =================
 // 37 columns of 5 min each = 0..180 min (3 hr), anchored to the First Vital time.
@@ -3990,14 +3991,9 @@ function validateField(el){
 
 // ================= Digital signature QR (page 1, bottom right) =================
 // Payload:  SF: <snowflake id> / Pt: <patient name>, <folder no.> / Dr: <doctor name, MP no.>
-// The snowflake (Twitter epoch, 41-bit ms timestamp + 10-bit worker + 12-bit
-// sequence) is minted once per record and renewed on Reset.
+// The snowflake ID comes from snowflake.js and is minted once per record
+// (renewed on Reset).
 let recordSnowflake = '';
-function newSnowflake(){
-  const ms = BigInt(Date.now() - 1288834974657);
-  const rnd = n => BigInt(Math.floor(Math.random()*(2**n)));
-  return String((ms<<22n) | (rnd(10)<<12n) | rnd(12));
-}
 function updateQR(){
   const box = document.getElementById('qr-sig');
   if(!box || typeof qrcode==='undefined') return;
