@@ -1050,18 +1050,21 @@ function buildFluidTrackRow(n, opts={}){
     // Active run = first incomplete one; otherwise a new run is begun.
     let idx = runs.findIndex(r=>r.start===null || r.end===null);
     if(fluidMode==='start'){
-      if(idx<0){
-        if(runs.length>=MAX_RUNS){ alert('All '+MAX_RUNS+' runs on this line are used. Right-click a mark to remove it first.'); return; }
-        runs.push({start:null,end:null,endType:null});
-        idx = runs.length-1;
-      }
-      const prev = runs[idx-1];
+      const isNew = idx<0;
+      if(isNew && runs.length>=MAX_RUNS){ alert('All '+MAX_RUNS+' runs on this line are used. Right-click a mark to remove it first.'); return; }
+      const at = isNew ? runs.length : idx;
+      const prev = runs[at-1];
       if(prev){
-        if(prev.endType!=='finish'){ alert('Run '+idx+' must be finished (×) before run '+(idx+1)+' can start.'); return; }
-        if(col<prev.end){ alert('Run '+(idx+1)+' cannot start before run '+idx+' finished.'); return; }
+        // A still-running (ongoing) previous run is finished at the new start.
+        if(prev.endType==='ongoing'){
+          if(col<prev.start){ alert('Run '+at+' cannot finish before it started.'); return; }
+          prev.end = col; prev.endType = 'finish';
+        } else if(prev.endType!=='finish'){ alert('Run '+at+' must be finished (×) before run '+(at+1)+' can start.'); return; }
+        else if(col<prev.end){ alert('Run '+(at+1)+' cannot start before run '+at+' finished.'); return; }
       }
-      if(runs[idx].end!==null && col>runs[idx].end){ alert('Start cannot be after the finish.'); return; }
-      runs[idx].start = col;
+      if(!isNew && runs[at].end!==null && col>runs[at].end){ alert('Start cannot be after the finish.'); return; }
+      if(isNew) runs.push({start:col,end:null,endType:null});
+      else runs[at].start = col;
     } else {
       if(idx<0 || runs[idx].start===null){ alert('Set a Start for this run first.'); return; }
       if(col<runs[idx].start){ alert('Finish cannot be before the start.'); return; }
